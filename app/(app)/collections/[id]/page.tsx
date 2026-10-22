@@ -70,7 +70,7 @@ export default function CollectionDetail() {
         <Skeleton className="h-10 w-1/3" />
         <div className="flex flex-wrap gap-4">
           {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-80 w-[200px]" />
+            <Skeleton key={index} className="h-[370px] w-[220px]" />
           ))}
         </div>
       </div>
@@ -138,7 +138,7 @@ export default function CollectionDetail() {
               className="flex items-center gap-4 rounded-lg border border-border bg-surface p-3"
             >
               <Link href={`/gallery/${gallery.id}`} className="shrink-0">
-                <div className="h-24 w-18 overflow-hidden rounded-md bg-primary-soft" style={{ width: 72 }}>
+                <div className="h-[104px] w-[78px] shrink-0 overflow-hidden rounded-md bg-primary-soft" style={{ width: 78 }}>
                   {gallery.cover_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={gallery.cover_url} alt="" className="h-full w-full object-cover" />
@@ -199,7 +199,7 @@ export default function CollectionDetail() {
                     else setSelected(selected.filter((id) => id !== gallery.id));
                   }}
                 />
-                <div className="h-12 w-9 overflow-hidden rounded bg-primary-soft">
+                <div className="h-[60px] w-[45px] shrink-0 overflow-hidden rounded bg-primary-soft">
                   {gallery.cover_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={gallery.cover_url} alt="" className="h-full w-full object-cover" />

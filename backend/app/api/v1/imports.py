@@ -10,6 +10,7 @@ from app.db.session import get_db
 from app.models.models import LibraryRoot
 from app.schemas.schemas import ImportIn, JobOut, LibraryRootIn, LibraryRootOut
 from app.services.importer import process_import
+from app.services.providers import import_nhentai as process_nhentai_import
 from app.services.jobs import create_job, get_job, list_jobs
 
 router = APIRouter(tags=["imports"])
@@ -56,7 +57,10 @@ def retry_import(job_id: str, background: BackgroundTasks, db: Session = Depends
     if job.status not in ("failed", "cancelled"):
         raise HTTPException(409, "Only failed or cancelled imports can be retried")
     payload = json.loads(job.payload_json or "{}")
-    if not payload.get("path"):
+    if payload.get("source") == "nhentai":
+        if not str(payload.get("id", "")).isdigit():
+            raise HTTPException(400, "This job has no stored nhentai id")
+    elif not payload.get("path"):
         raise HTTPException(400, "This job has no stored source path")
     job.status = "queued"
     job.progress_current = 0
@@ -70,7 +74,10 @@ def retry_import(job_id: str, background: BackgroundTasks, db: Session = Depends
     job.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(job)
-    background.add_task(process_import, job.id)
+    if payload.get("source") == "nhentai":
+        background.add_task(process_nhentai_import, job.id)
+    else:
+        background.add_task(process_import, job.id)
     return job
 
 

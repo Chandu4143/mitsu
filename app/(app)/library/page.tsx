@@ -182,7 +182,7 @@ function LibraryInner() {
       {loading ? (
         <div className={`flex flex-wrap gap-4 ${view === "list" ? "flex-col" : ""}`}>
           {Array.from({ length: 8 }).map((_, index) => (
-            <Skeleton key={index} className={view === "list" ? "h-24 w-full" : "h-80 w-[200px]"} />
+            <Skeleton key={index} className={view === "list" ? "h-24 w-full" : "h-[370px] w-[220px]"} />
           ))}
         </div>
       ) : galleries.length === 0 ? (
@@ -217,7 +217,7 @@ function LibraryInner() {
               className="flex items-center gap-4 rounded-lg border border-border bg-surface p-3 transition hover:border-primary"
             >
               <Link href={`/gallery/${gallery.id}`} className="shrink-0">
-                <div className="h-24 w-18 overflow-hidden rounded-md bg-primary-soft" style={{ width: 72 }}>
+                <div className="h-[104px] w-[78px] shrink-0 overflow-hidden rounded-md bg-primary-soft" style={{ width: 78 }}>
                   {gallery.cover_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={gallery.cover_url} alt="" className="h-full w-full object-cover" />
@@ -260,9 +260,9 @@ function LibraryInner() {
       ) : (
         <div className="flex flex-wrap gap-4">
           {galleries.map((gallery) => (
-            <div key={gallery.id} className="group flex w-[200px] flex-col overflow-hidden rounded-lg border border-border bg-surface transition hover:border-primary">
+            <div key={gallery.id} className="group flex w-[220px] flex-col overflow-hidden rounded-lg border border-border bg-surface transition hover:border-primary">
               <Link href={`/gallery/${gallery.id}`} className="block">
-                <div className="relative h-[260px] w-[200px] bg-primary-soft overflow-hidden">
+                <div className="relative h-[290px] w-[220px] bg-primary-soft overflow-hidden">
                   {gallery.cover_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={gallery.cover_url} alt="" className="h-full w-full object-cover transition group-hover:scale-105" />

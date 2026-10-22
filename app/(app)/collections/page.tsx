@@ -105,7 +105,7 @@ function CollectionsInner() {
       {loading ? (
         <div className="flex flex-wrap gap-5">
           {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-48 w-[320px]" />
+            <Skeleton key={index} className="h-[218px] w-[320px]" />
           ))}
         </div>
       ) : collections.length === 0 ? (
@@ -127,7 +127,7 @@ function CollectionsInner() {
               className="group flex w-[320px] flex-col overflow-hidden rounded-lg border border-border bg-surface transition hover:border-primary"
             >
               <Link href={`/collections/${collection.id}`} className="block">
-                <div className="flex h-[140px] gap-1 bg-primary-soft p-3">
+                <div className="flex h-[170px] gap-1 bg-primary-soft p-3">
                   {(covers[collection.id] || []).length === 0
                     ? Array.from({ length: 3 }).map((_, index) => (
                         <div key={index} className="flex-1 rounded-sm border border-border bg-surface/70" />

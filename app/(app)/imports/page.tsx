@@ -1,11 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { api, type Job, type LibraryRoot } from "@/lib/api";
 import { Icon } from "@/components/Icon";
-import { Button, EmptyState, Skeleton } from "@/components/ui";
+import { Button, EmptyState } from "@/components/ui";
 
 const filters = ["All", "Running", "Completed", "Failed"];
+
+type Notice = {
+  tone: "info" | "success" | "error";
+  title: string;
+  detail?: string;
+  galleryId?: string;
+};
+
+const statusMeta: Record<
+  string,
+  {
+    label: string;
+    color: string;
+    text: string;
+    icon: "check" | "alert" | "clock" | "refresh" | "x";
+  }
+> = {
+  queued: { label: "Queued", color: "bg-warning", text: "text-warning", icon: "clock" },
+  running: { label: "Importing", color: "bg-primary", text: "text-primary", icon: "refresh" },
+  completed: { label: "Completed", color: "bg-success", text: "text-success", icon: "check" },
+  failed: { label: "Failed", color: "bg-danger", text: "text-danger", icon: "alert" },
+  cancelled: { label: "Cancelled", color: "bg-text-muted", text: "text-text-muted", icon: "x" },
+};
 
 export default function Imports() {
   const [path, setPath] = useState("");
@@ -13,36 +37,88 @@ export default function Imports() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [roots, setRoots] = useState<LibraryRoot[]>([]);
   const [importing, setImporting] = useState(false);
-  const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("All");
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const trackedIdRef = useRef<string | null>(null);
+  const trackedLabelRef = useRef("");
+  const jobsRef = useRef<HTMLDivElement>(null);
 
-  const refresh = async () => {
+  const refresh = async (): Promise<Job[]> => {
     try {
-      setJobs(await api.listImports());
+      const nextJobs: Job[] = await api.listImports();
+      setJobs(nextJobs);
       setRoots(await api.listLibraryRoots());
+      return nextJobs;
     } catch (err) {
       setError((err as Error).message);
+      return [];
     }
   };
 
   useEffect(() => {
-    refresh();
-    const timer = setInterval(refresh, 1500);
-    return () => clearInterval(timer);
+    let cancelled = false;
+    const poll = async () => {
+      const nextJobs = await refresh();
+      if (cancelled) return;
+      // Follow the job the user just started and keep the banner up to date.
+      if (!trackedIdRef.current) return;
+      const job = nextJobs.find((item) => item.id === trackedIdRef.current);
+      if (!job) return;
+      const label = trackedLabelRef.current;
+      const progress = job.progress_total
+        ? `${job.progress_current}/${job.progress_total} pages`
+        : "Preparing files…";
+      if (job.status === "queued") {
+        setNotice({ tone: "info", title: "Import queued", detail: label });
+      } else if (job.status === "running") {
+        setNotice({ tone: "info", title: "Importing…", detail: `${label} · ${progress}` });
+      } else if (job.status === "completed") {
+        setNotice({
+          tone: "success",
+          title: "Import complete",
+          detail:
+            job.error_code === "DUPLICATE"
+              ? `${label} is already in your library.`
+              : `${label} · ${progress}`,
+          galleryId: job.result_id || undefined,
+        });
+        trackedIdRef.current = null;
+      } else if (job.status === "failed") {
+        setNotice({
+          tone: "error",
+          title: "Import failed",
+          detail: job.error_message || `Could not import ${label}.`,
+        });
+        trackedIdRef.current = null;
+      } else if (job.status === "cancelled") {
+        setNotice({ tone: "info", title: "Import cancelled", detail: label });
+        trackedIdRef.current = null;
+      }
+    };
+    poll();
+    const timer = setInterval(poll, 1500);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, []);
 
   const doImport = async () => {
     if (!path.trim()) return;
+    const target = path.trim();
     setImporting(true);
-    setMsg("");
     setError("");
+    setNotice({ tone: "info", title: "Starting import…", detail: target });
     try {
-      const job = await api.startImport({ path: path.trim() });
-      setMsg(`Import queued: ${job.id.slice(0, 8)}`);
+      const job = await api.startImport({ path: target });
+      trackedIdRef.current = job.id;
+      trackedLabelRef.current = target;
       setPath("");
       await refresh();
+      jobsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
+      setNotice(null);
       setError((err as Error).message);
     } finally {
       setImporting(false);
@@ -64,6 +140,9 @@ export default function Imports() {
   const retry = async (job: Job) => {
     try {
       await api.retryImport(job.id);
+      trackedIdRef.current = job.id;
+      trackedLabelRef.current = `Job ${job.id.slice(0, 8)}`;
+      setNotice({ tone: "info", title: "Retrying import…", detail: `Job ${job.id.slice(0, 8)}` });
       await refresh();
     } catch (err) {
       setError((err as Error).message);
@@ -101,14 +180,80 @@ export default function Imports() {
             className="flex-1 rounded-full border border-border bg-bg px-4 py-2.5 text-[14px] text-text outline-none focus:border-primary placeholder:text-text-muted"
           />
           <Button onClick={doImport} disabled={importing}>
-            {importing ? "Importing…" : "Import"}
+            {importing ? "Starting…" : "Import"}
           </Button>
         </div>
-        {msg && <div className="text-[12px] text-text-muted">{msg}</div>}
         {error && <div className="text-[12px] text-danger">{error}</div>}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+      {notice && (
+        <div
+          className={`flex items-start gap-3 rounded-lg border px-4 py-3.5 ${
+            notice.tone === "success"
+              ? "border-success/30 bg-success/5"
+              : notice.tone === "error"
+              ? "border-danger/30 bg-danger/5"
+              : "border-primary/30 bg-primary-soft"
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          <div
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+              notice.tone === "success"
+                ? "bg-success text-white"
+                : notice.tone === "error"
+                ? "bg-danger text-white"
+                : "bg-primary text-white"
+            }`}
+          >
+            {notice.tone === "success" ? (
+              <Icon name="check" size={18} />
+            ) : notice.tone === "error" ? (
+              <Icon name="alert" size={18} />
+            ) : (
+              <Icon name="refresh" size={18} className="animate-spin" />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div
+              className={`text-[14px] font-bold ${
+                notice.tone === "success"
+                  ? "text-success"
+                  : notice.tone === "error"
+                  ? "text-danger"
+                  : "text-primary"
+              }`}
+            >
+              {notice.title}
+            </div>
+            {notice.detail && (
+              <div className="mt-0.5 truncate text-[12px] text-text-secondary" title={notice.detail}>
+                {notice.detail}
+              </div>
+            )}
+          </div>
+          {notice.galleryId && (
+            <Link
+              href={`/gallery/${notice.galleryId}`}
+              className="shrink-0 self-center rounded-full bg-primary px-3 py-1.5 text-[12px] font-semibold text-white"
+            >
+              Open gallery
+            </Link>
+          )}
+          {notice.tone !== "info" && (
+            <button
+              onClick={() => setNotice(null)}
+              className="shrink-0 self-center rounded-md p-1.5 text-text-muted hover:bg-primary-soft hover:text-primary"
+              aria-label="Dismiss"
+            >
+              <Icon name="x" size={15} />
+            </button>
+          )}
+        </div>
+      )}
+
+      <div ref={jobsRef} className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap gap-2">
             {filters.map((item) => (
@@ -139,42 +284,25 @@ export default function Imports() {
           ) : (
             <div className="flex flex-col gap-3">
               {visibleJobs.map((job) => {
-                const color =
-                  job.status === "completed"
-                    ? "bg-success"
-                    : job.status === "failed"
-                    ? "bg-danger"
-                    : job.status === "cancelled"
-                    ? "bg-text-muted"
-                    : "bg-primary";
-                const textColor =
-                  job.status === "completed"
-                    ? "text-success"
-                    : job.status === "failed"
-                    ? "text-danger"
-                    : job.status === "cancelled"
-                    ? "text-text-muted"
-                    : "text-primary";
+                const meta = statusMeta[job.status] || statusMeta.queued;
+                const isActive = job.status === "queued" || job.status === "running";
                 const percent = job.progress_total
                   ? Math.round((job.progress_current / job.progress_total) * 100)
                   : 0;
                 return (
                   <div
                     key={job.id}
-                    className="flex items-center gap-4 rounded-lg border border-border bg-surface p-4"
+                    className={`flex items-center gap-4 rounded-lg border bg-surface p-4 transition ${
+                      isActive ? "border-primary/40" : "border-border"
+                    }`}
                   >
                     <div
-                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-white ${color}`}
+                      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-white ${meta.color}`}
                     >
                       <Icon
-                        name={
-                          job.status === "completed"
-                            ? "check"
-                            : job.status === "failed"
-                            ? "alert"
-                            : "clock"
-                        }
+                        name={meta.icon}
                         size={20}
+                        className={job.status === "running" ? "animate-spin" : ""}
                       />
                     </div>
                     <div className="flex flex-1 flex-col gap-1">
@@ -182,15 +310,21 @@ export default function Imports() {
                         <div className="truncate text-[14px] font-semibold text-text">
                           {job.type} · {job.id.slice(0, 8)}
                         </div>
-                        <div className={`text-[12px] font-semibold ${textColor}`}>{job.status}</div>
+                        <div className={`text-[12px] font-semibold ${meta.text}`}>
+                          {meta.label}
+                          {job.status === "running" ? ` ${percent}%` : ""}
+                        </div>
                       </div>
                       <div className="text-[12px] text-text-secondary">
-                        {job.progress_current}/{job.progress_total}
+                        {job.progress_current}/{job.progress_total} pages
                         {job.result_id ? ` · gallery ${job.result_id.slice(0, 8)}` : ""}
                         {job.error_message ? ` · ${job.error_message}` : ""}
                       </div>
                       <div className="h-1.5 overflow-hidden rounded-full bg-border">
-                        <div className={`h-full rounded-full ${color}`} style={{ width: `${percent}%` }} />
+                        <div
+                          className={`h-full rounded-full transition-[width] duration-500 ${meta.color}`}
+                          style={{ width: `${job.status === "completed" ? 100 : percent}%` }}
+                        />
                       </div>
                     </div>
                     <div className="flex shrink-0 gap-1">
@@ -203,7 +337,7 @@ export default function Imports() {
                           <Icon name="refresh" size={16} />
                         </button>
                       )}
-                      {(job.status === "queued" || job.status === "running") && (
+                      {isActive && (
                         <button
                           onClick={() => cancel(job)}
                           className="rounded-md p-1.5 text-text-muted hover:bg-danger/10 hover:text-danger"

@@ -38,7 +38,7 @@ export default function GalleryDetail() {
   if (loading) {
     return (
       <div className="flex gap-8">
-        <Skeleton className="h-[360px] w-[260px]" />
+        <Skeleton className="h-[400px] w-[300px]" />
         <div className="flex flex-1 flex-col gap-3">
           <Skeleton className="h-10 w-2/3" />
           <Skeleton className="h-5 w-1/3" />
@@ -86,7 +86,7 @@ export default function GalleryDetail() {
       </div>
 
       <div className="flex flex-col gap-8 xl:flex-row xl:items-start">
-        <div className="w-full shrink-0 xl:w-[260px]">
+        <div className="w-full shrink-0 xl:w-[300px]">
           <div className="aspect-[3/4] overflow-hidden rounded-lg border border-border bg-primary-soft">
             {gallery.cover_url ? (
               // eslint-disable-next-line @next/next/no-img-element

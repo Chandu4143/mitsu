@@ -10,7 +10,7 @@ function GalleryCard({ gallery }: { gallery: Gallery }) {
   return (
     <Link
       href={`/gallery/${gallery.id}`}
-      className="group flex flex-col overflow-hidden rounded-lg border border-border bg-surface transition hover:border-primary"
+      className="group flex w-[220px] shrink-0 flex-col overflow-hidden rounded-lg border border-border bg-surface transition hover:border-primary"
     >
       <div className="relative aspect-[3/4] bg-primary-soft overflow-hidden">
         {gallery.cover_url ? (
@@ -92,7 +92,7 @@ export default function Home() {
             {recent.slice(0, 3).map((gallery, index) => (
               <div
                 key={gallery.id}
-                className="h-44 w-32 overflow-hidden rounded-xl border border-border bg-primary-soft shadow-card"
+                className="h-52 w-36 overflow-hidden rounded-xl border border-border bg-primary-soft shadow-card"
                 style={{ transform: `rotate(${index === 1 ? 0 : index === 0 ? -6 : 6}deg)` }}
               >
                 {gallery.cover_url ? (
@@ -145,7 +145,7 @@ export default function Home() {
                   href={`/reader/${gallery.id}`}
                   className="flex w-[520px] max-w-full gap-4 rounded-lg border border-border bg-surface p-4 transition hover:border-primary"
                 >
-                  <div className="h-32 w-24 shrink-0 overflow-hidden rounded-md bg-primary-soft">
+                  <div className="h-36 w-28 shrink-0 overflow-hidden rounded-md bg-primary-soft">
                     {gallery.cover_url && (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={gallery.cover_url} alt="" className="h-full w-full object-cover" />
@@ -182,7 +182,7 @@ export default function Home() {
         {loading ? (
           <div className="flex gap-4 flex-wrap">
             {Array.from({ length: 6 }).map((_, index) => (
-              <Skeleton key={index} className="h-80 w-[180px]" />
+              <Skeleton key={index} className="h-96 w-[220px]" />
             ))}
           </div>
         ) : recent.length === 0 ? (
