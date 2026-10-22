@@ -1,0 +1,17 @@
+# Mitsu backend dependencies
+# Install with:  pip install -r backend/requirements.txt
+
+# Web framework and ASGI server
+fastapi==0.115.6
+uvicorn==0.34.0
+pydantic==2.10.4
+python-multipart==0.0.6
+
+# Database
+SQLAlchemy==2.0.36
+
+# Image processing (cover generation, page probing)
+Pillow==12.3.0
+
+# Optional nhentai provider adapter (Discover page)
+cloudscraper==1.2.71
