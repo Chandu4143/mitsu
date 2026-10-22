@@ -1,124 +1,183 @@
-# Mitsu
+<p align="center">
+  <img src="public/screenshots/01-home.png" alt="Mitsu — Home dashboard" width="720" />
+</p>
 
-A local-first manga library and reader, inspired by Peach. React + Next.js frontend, Python + FastAPI backend, SQLite storage. Everything runs on your machine — no accounts, no cloud, no telemetry.
+<h1 align="center">mitsu.</h1>
 
-## Features
+<p align="center">
+  <em>your little reading corner — a local-first manga library &amp; reader</em>
+</p>
 
-- **Library** — browse your collection as a cover grid, with folders-scanned import (CBZ/ZIP, folders, or single images), duplicate detection by content hash, and reading progress tracking.
-- **Reader** — page-by-page reader with progress persistence, resumable where you left off.
-- **Collections** — organize galleries into manually curated collections.
-- **Discover (optional)** — search nhentai.net and import galleries from it into your library. See [Discover / nhentai](#discover--nhentai-optional) below.
+<p align="center">
+  <img alt="Stack" src="https://img.shields.io/badge/Next.js_16-black?style=flat-square&logo=nextdotjs" />
+  <img alt="Stack" src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
+  <img alt="Stack" src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white" />
+  <img alt="Stack" src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" />
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-B9698D?style=flat-square" />
+</p>
 
-## Requirements
+---
 
-- Node.js 18+ and [pnpm](https://pnpm.io/) (`npm install -g pnpm` if you don't have it)
-- Python 3.12+
+Mitsu is a **local-first** manga library and reader inspired by [Peach](https://github.com/peachs). React + Next.js frontend, Python + FastAPI backend, SQLite storage. Everything runs on your machine — **no accounts, no cloud, no telemetry**.
 
-## Getting started
+## ✨ Screenshots
+
+<details open>
+<summary><strong>Home — Dashboard</strong></summary>
+<br/>
+<img src="public/screenshots/01-home.png" alt="Home dashboard with continue reading, recently added, and favorites" width="720" />
+</details>
+
+<details>
+<summary><strong>Library — Grid view</strong></summary>
+<br/>
+<img src="public/screenshots/02-library-grid.png" alt="Library grid view with search, filters, and sorting" width="720" />
+</details>
+
+<details>
+<summary><strong>Library — List view</strong></summary>
+<br/>
+<img src="public/screenshots/03-library-list.png" alt="Library list view" width="720" />
+</details>
+
+<details>
+<summary><strong>Gallery — Detail page</strong></summary>
+<br/>
+<img src="public/screenshots/04-gallery-detail.png" alt="Gallery detail with metadata, tags, progress, and page thumbnails" width="720" />
+</details>
+
+<details>
+<summary><strong>Reader</strong></summary>
+<br/>
+<img src="public/screenshots/05-reader.png" alt="Reader with single-page and continuous scroll modes" width="720" />
+</details>
+
+<details>
+<summary><strong>Imports</strong></summary>
+<br/>
+<img src="public/screenshots/06-imports.png" alt="Import manager with live progress and library roots" width="720" />
+</details>
+
+## 🎯 Features
+
+| | |
+| --- | --- |
+| 📚 **Library** | Browse your collection as a cover grid or list. Search by title, tags, artists. Filter by status. Sort by date, title, or page count. |
+| 📖 **Reader** | Single-page & continuous-scroll modes, keyboard navigation, fit-to-width/screen, fullscreen, dark background, LTR/RTL reading direction. Progress saves automatically. |
+| 📦 **Import** | Drop in a CBZ/ZIP archive, a folder of images, or a single image file. Background import with live progress. Duplicate detection by content hash. ComicInfo.xml parsing. |
+| ⭐ **Favorites** | Star galleries from anywhere — cards, detail pages, or the library. |
+| 📁 **Collections** | Organize galleries into manually curated collections. |
+| 🔍 **Discover** | *(Optional)* Search nhentai.net and import galleries directly. Requires `cloudscraper` — everything works without it. |
+| 🔒 **Private** | Runs on `localhost`. No accounts, no tracking. Your files never leave your machine. |
+
+## 🚀 Getting started
+
+### Requirements
+
+- **Node.js 18+** and [pnpm](https://pnpm.io/) (`npm install -g pnpm`)
+- **Python 3.12+**
 
 ### 1. Install dependencies
 
 ```bash
-# frontend
+# Frontend
 pnpm install
 
-# backend
+# Backend
 python -m pip install -r backend/requirements.txt
 ```
 
-Windows note: if `python` is not found, try `py -m pip install -r backend/requirements.txt` (or install Python from [python.org](https://www.python.org/downloads/) and check "Add to PATH" during setup).
+> **Windows note:** if `python` isn't found, try `py -m pip install -r backend/requirements.txt` (and make sure Python is on your PATH).
 
-### 2. Run everything
+### 2. Start everything
 
 ```bash
 python run.py
 ```
 
-This starts the backend API on `http://127.0.0.1:8000` and the frontend on `http://localhost:3000`, then opens the docs if you visit the backend directly. Press `Ctrl+C` to stop both. If anything is missing, `run.py` tells you exactly which command to run instead of failing halfway.
+This starts the backend API on `http://127.0.0.1:8000` and the frontend on `http://localhost:3000`. Press `Ctrl+C` to stop both.
 
-You can also run the two halves separately:
+You can also run them separately:
 
 ```bash
-# backend
+# Backend
 cd backend
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
-# frontend (in a second terminal, from the repo root)
+# Frontend (in another terminal, from repo root)
 pnpm dev
 ```
 
 Then open **http://localhost:3000**.
 
-## Importing a manga
+## 📦 Importing manga
 
-1. Open http://localhost:3000/imports
-2. Paste the absolute path to any of these:
-   - a `.cbz` / `.zip` archive
-   - a folder of images
-   - a single image file
-3. Click Import. Import runs as a background job — you'll see live progress, and it can be cancelled from the same page.
+1. Go to **Imports** (`/imports`)
+2. Paste the **absolute path** to a `.cbz`/`.zip` archive, a folder of images, or a single image
+3. Click **Import** — progress is tracked in real time
 
-Notes on imports:
+**Good to know:**
+- Original files are **never moved or deleted** — Mitsu copies them into its own library
+- Duplicates are detected by content hash (safe to re-import)
+- `ComicInfo.xml` metadata (title, writer, language, genres) is parsed automatically
 
-- Your original files are **never moved or deleted** — Mitsu copies them into its own library folder and stores them relative to that library root.
-- Duplicates are detected by content hash, so re-importing the same archive is safe and will surface "already in your library" instead of doubling up.
-- If the archive contains a `ComicInfo.xml`, its title, writer, language and genres are parsed into the gallery metadata.
+## 🔍 Discover / nhentai *(optional)*
 
-## Discover / nhentai (optional)
+The Discover page lets you search nhentai.net and import galleries. It's **entirely opt-in**:
 
-The Discover page lets you search nhentai.net and import galleries into your local library. It is **entirely opt-in**:
+- Powered by `cloudscraper` (listed in `backend/requirements.txt`)
+- Skip or remove `cloudscraper` to disable it — everything else works normally
+- When disabled, the API returns a clear `503` and the UI shows "provider unavailable"
 
-- The provider is powered by the `cloudscraper` package, listed as the last (optional) entry in `backend/requirements.txt`. If you don't install it, Discover stays disabled and everything else works normally.
-- To enable it: install the requirements normally (it's included), or to *disable* it, skip/remove `cloudscraper` from your install — the API reports the provider as unavailable and the discover endpoints return a clear 503.
-- Whichever install you choose, imports are fetched to *your* local machine from your own IP, one gallery at a time, with cancellation support. Rate-limit concerns are yours to manage; Mitsu does not batch or parallelize requests.
+## ⚙️ Configuration
 
-If you'd rather not have the feature at all, remove `backend/app/api/v1/providers.py`, `backend/app/services/providers.py` and the Discover page — nothing else depends on them.
-
-## Configuration
-
-No configuration is required. All knobs are environment variables (see `.env.example` for the full annotated list). The most useful:
+No configuration required. All options are environment variables — see [`.env.example`](.env.example) for the full list.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `MITSU_DATA_DIR` | `<repo>/data` | Where the SQLite DB, thumbnails and cache live |
-| `MITSU_LIBRARY_ROOT` | `<MITSU_DATA_DIR>/library` | Where imported galleries are stored |
+| `MITSU_DATA_DIR` | `<repo>/data` | SQLite DB, thumbnails, and cache |
+| `MITSU_LIBRARY_ROOT` | `<data>/library` | Where imported galleries are stored |
 | `MITSU_HOST` / `MITSU_PORT` | `127.0.0.1` / `8000` | Backend bind address |
 | `MITSU_FRONTEND_ORIGIN` | `http://localhost:3000` | Allowed CORS origin |
-| `MITSU_MAX_ARCHIVE_BYTES` | `4 GiB` | Max single CBZ/ZIP size |
+| `MITSU_MAX_ARCHIVE_BYTES` | `4 GiB` | Max single archive size |
 | `MITSU_MAX_EXTRACTED_BYTES` | `8 GiB` | Max size once extracted |
-| `MITSU_MAX_ARCHIVE_ENTRIES` | `20000` | Max files per archive |
+| `MITSU_MAX_ARCHIVE_ENTRIES` | `20 000` | Max files per archive |
 | `MITSU_MAX_IMAGE_PIXELS` | `80 MP` | Decompression-bomb guard |
 
-Values can be set in the shell or via a `backend/.env` file (gitignored — start from `.env.example`).
+Set values in your shell or in `backend/.env` (gitignored — copy from `.env.example`).
 
-## Data location & backup
+## 💾 Data & backup
 
-Everything (database, thumbnails, imported copies) lives under `data/` by default — a single folder, gitignored, easy to back up or move:
+Everything lives under `data/` — a single folder, gitignored, easy to back up:
 
 ```
 data/
-  database/mitsu.db   # the SQLite database
-  library/            # imported gallery files (copied from your sources)
-  thumbnails/         # derived — safe to delete, regenerates lazily
-  cache/              # transient
+  database/mitsu.db   ← the SQLite database
+  library/            ← imported gallery files
+  thumbnails/         ← derived, safe to delete (regenerates lazily)
+  cache/              ← transient
 ```
 
-To back up: stop the app, copy `data/` (or just `data/database/mitsu.db` if you're happy losing derived thumbnails until re-import). To move the whole install to another disk, copy the repo + `data/` folder, or point `MITSU_LIBRARY_ROOT`/`MITSU_DATA_DIR` at new locations and re-point the database accordingly.
+**Backup:** stop the app, copy `data/`. To keep it minimal, just back up `data/database/mitsu.db`.
 
-## Troubleshooting
+## 🛠 Development
 
-- **`ModuleNotFoundError: No module named 'fastapi'` (or similar)** — you skipped the backend install. Run `python -m pip install -r backend/requirements.txt`. On Windows use `py -m pip ...` if `python` isn't on PATH.
-- **Port 8000 or 3000 already in use** — stop the other process, or set `MITSU_PORT` (backend) and change the frontend port via the Next.js CLI (`pnpm dev -- -p 3001`).
-- **Import fails immediately with `Path not found`** — the path you pasted isn't visible to the backend process; use an absolute path (Windows: `C:\Users\you\...\manga` not `~\...`).
-- **Import fails with `Archive exceeds the configured size limit`** — your CBZ is over 4 GiB. Raise `MITSU_MAX_ARCHIVE_BYTES` in `backend/.env`.
-- **A page shows as blank / image fails to load** — derive thumbnail cache may be stale; delete `data/cache/` (and `data/thumbnails/` if needed) and restart.
-- **Discover shows "provider unavailable"** — `cloudscraper` isn't installed; re-run the backend install command.
+| | |
+| --- | --- |
+| **Backend** | `backend/app/` — FastAPI + SQLAlchemy. Restart after edits. |
+| **Frontend** | `app/` — Next.js App Router with Tailwind CSS. Hot reload via `pnpm dev`. |
 
-## Development
+## 🐛 Troubleshooting
 
-- Backend code is `backend/app/` (FastAPI, SQLAlchemy). Restart the backend process after edits; there's no reload when launched via `run.py`.
-- Frontend code is `app/` (Next.js App Router). Hot reload works via `pnpm dev`.
+| Problem | Fix |
+| --- | --- |
+| `ModuleNotFoundError: No module named 'fastapi'` | Run `python -m pip install -r backend/requirements.txt` |
+| Port 8000 or 3000 already in use | Stop the other process, or set `MITSU_PORT` / `pnpm dev -- -p 3001` |
+| Import fails with "Path not found" | Use an absolute path (`C:\Users\you\manga`, not `~\manga`) |
+| Import fails with "Archive exceeds size limit" | Raise `MITSU_MAX_ARCHIVE_BYTES` in `.env` |
+| Page shows blank / image fails | Delete `data/cache/` and `data/thumbnails/`, restart |
+| Discover shows "provider unavailable" | `cloudscraper` isn't installed |
 
-## License
+## 📄 License
 
 MIT — see [LICENSE](LICENSE).
