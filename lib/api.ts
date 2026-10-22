@@ -169,5 +169,8 @@ export const api = {
       body: JSON.stringify({ record_id: recordId, fields }),
     }),
 
-  listProviders: () => req("/providers"),
+  searchNhentai: (q: string, page = 1) =>
+    req(`/providers/nhentai/search?q=${encodeURIComponent(q)}&page=${page}`),
+  importNhentai: (id: string) =>
+    req("/providers/nhentai/import", { method: "POST", body: JSON.stringify({ id }) }),
 };
