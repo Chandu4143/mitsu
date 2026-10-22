@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
-from app.models.models import Favorite, Gallery, ReadingProgress
+from app.models.models import Favorite, ReadingProgress
 from app.schemas.schemas import (
     FavoriteIn,
     GalleryDetailOut,

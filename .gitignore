@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -42,16 +43,11 @@ next-env.d.ts
 
 # mitsu local data
 /data/
+/backend/data/
 /backend/app/data/
 /backend/app/**/__pycache__/
 /backend/**/__pycache__/
-/mitsu-backend.log
-*.log
-
-# mitsu local data
-/data/
-/backend/data/
-/backend/app/**/__pycache__/
-/backend/**/__pycache__/
-/mitsu-backend.log
+/backend/.venv/
+/backend/venv/
+/backend/.pytest_cache/
 *.log

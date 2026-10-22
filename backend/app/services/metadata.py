@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.models.models import Gallery, MetadataRecord
+from app.models.models import MetadataRecord
 from app.services.library import get_gallery, set_tags
 
 

@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.models.models import AppSetting, Job
-from app.services.library import to_gallery_out
 
 
 def create_job(db: Session, jtype: str, total: int = 0, payload: dict | None = None) -> Job:
