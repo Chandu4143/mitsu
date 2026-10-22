@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mitsu
 
-## Getting Started
+A Peach-inspired, local-first manga library and reader (React + Next.js frontend, Python + FastAPI backend, SQLite).
 
-First, run the development server:
+## Getting started
+
+Prerequisites: Node.js (pnpm), Python 3.12+.
+
+### Run everything
 
 ```bash
-npm run dev
+# one command (starts backend on :8000 and frontend on :3000)
+./pandacode-run.sh
 # or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+python run.py
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Run separately
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Backend:
+```bash
+cd backend
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
 
-## Learn More
+Frontend:
+```bash
+pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+### Importing a manga
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open http://localhost:3000/imports and paste the absolute path to a CBZ/ZIP or folder, then click Import. The gallery appears on Home and in Library.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Data
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Database and thumbnails live under `data/` (configurable via `MITSU_DATA_DIR`). Source files are never moved or deleted.
