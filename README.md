@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="public/screenshots/01-home.png" alt="Mitsu — Home dashboard" width="720" />
-</p>
+
 
 <h1 align="center">mitsu.</h1>
 
