@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1440" />
+<title>Mitsu — Lovato variant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lovato:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --color-bg: #FFF7FA;
+    --color-surface: #FFFFFF;
+    --color-primary: #B9698D;
+    --color-primary-soft: #F4E3EB;
+    --color-text: #463440;
+    --color-text-secondary: #956A7D;
+    --color-text-muted: #B89AA8;
+    --color-border: #EBDCE3;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-full: 9999px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Lovato', 'Inter', sans-serif; background: var(--color-bg); color: var(--color-text); }
+  .app { display: flex; min-height: 100vh; }
+  .sidebar { width: 240px; background: var(--color-surface); border-right: 1px solid var(--color-border); padding: 24px 16px; display: flex; flex-direction: column; gap: 24px; flex-shrink: 0; }
+  .logo { font-size: 22px; font-weight: 900; letter-spacing: -0.02em; color: var(--color-primary); padding: 4px 8px; }
+  .nav { display: flex; flex-direction: column; gap: 4px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--radius-md); font-size: 14px; font-weight: 500; color: var(--color-text-secondary); cursor: pointer; }
+  .nav-item.active { background: var(--color-primary-soft); color: var(--color-primary); font-weight: 600; }
+  .nav-icon { width: 18px; height: 18px; border-radius: 4px; background: var(--color-border); }
+  .nav-item.active .nav-icon { background: var(--color-primary); }
+  .storage { margin-top: auto; padding: 12px; background: var(--color-primary-soft); border-radius: var(--radius-md); }
+  .storage-title { font-size: 12px; font-weight: 600; color: var(--color-primary); }
+  .storage-sub { font-size: 12px; color: var(--color-text-secondary); margin-top: 4px; }
+  .storage-bar { margin-top: 8px; height: 6px; background: var(--color-border); border-radius: var(--radius-full); overflow: hidden; }
+  .storage-fill { width: 12%; height: 100%; background: var(--color-primary); border-radius: var(--radius-full); }
+  .main { flex: 1; padding: 32px 40px; display: flex; flex-direction: column; gap: 32px; }
+  .top { display: flex; align-items: center; justify-content: space-between; }
+  .greet { font-size: 13px; font-weight: 500; color: var(--color-text-muted); }
+  .title { font-size: 32px; font-weight: 800; letter-spacing: -0.02em; }
+  .search { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); width: 280px; color: var(--color-text-muted); font-size: 14px; }
+  .search-icon { width: 16px; height: 16px; background: var(--color-border); border-radius: 4px; }
+  .avatar { width: 40px; height: 40px; border-radius: var(--radius-full); background: var(--color-primary-soft); display: flex; align-items: center; justify-content: center; color: var(--color-primary); font-weight: 700; }
+  .section { display: flex; flex-direction: column; gap: 16px; }
+  .section-head { display: flex; align-items: center; justify-content: space-between; }
+  .section-title { font-size: 20px; font-weight: 700; }
+  .section-link { font-size: 13px; font-weight: 600; color: var(--color-primary); cursor: pointer; }
+  .continue-row { display: flex; gap: 20px; }
+  .continue-card { display: flex; gap: 16px; width: 520px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 16px; align-items: center; }
+  .cover { width: 96px; height: 128px; background: var(--color-primary-soft); border-radius: var(--radius-md); flex-shrink: 0; }
+  .card-body { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .card-title { font-size: 15px; font-weight: 700; }
+  .card-meta { font-size: 13px; color: var(--color-text-secondary); }
+  .card-sub { font-size: 12px; color: var(--color-text-muted); }
+  .progress { margin-top: 6px; height: 6px; background: var(--color-border); border-radius: var(--radius-full); overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--color-primary); border-radius: var(--radius-full); }
+  .btn-row { margin-top: 8px; display: flex; gap: 8px; }
+  .btn { padding: 6px 14px; border-radius: var(--radius-full); font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: var(--color-primary); color: #fff; }
+  .btn-soft { background: var(--color-primary-soft); color: var(--color-primary); }
+  .grid { display: flex; gap: 16px; flex-wrap: wrap; }
+  .gcard { display: flex; flex-direction: column; width: 180px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; }
+  .gcover { width: 180px; height: 240px; background: var(--color-primary-soft); }
+  .gbody { padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; }
+  .gtitle { font-size: 13px; font-weight: 600; }
+  .gmeta { font-size: 11px; color: var(--color-text-secondary); }
+  .badge { display: inline-block; padding: 4px 10px; background: var(--color-primary-soft); color: var(--color-primary); border-radius: var(--radius-full); font-size: 12px; font-weight: 600; }
+  .font-note { position: fixed; bottom: 16px; right: 16px; padding: 8px 14px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-full); font-size: 12px; color: var(--color-text-muted); }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo">mitsu.</div>
+    <nav class="nav">
+      <div class="nav-item active"><div class="nav-icon"></div>Home</div>
+      <div class="nav-item"><div class="nav-icon"></div>Library</div>
+      <div class="nav-item"><div class="nav-icon"></div>Collections</div>
+      <div class="nav-item"><div class="nav-icon"></div>Discover</div>
+      <div class="nav-item"><div class="nav-icon"></div>Imports</div>
+      <div class="nav-item"><div class="nav-icon"></div>Settings</div>
+    </nav>
+    <div class="storage">
+      <div class="storage-title">Storage</div>
+      <div class="storage-sub">1.2 GB of 10 GB used</div>
+      <div class="storage-bar"><div class="storage-fill"></div></div>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="top">
+      <div>
+        <div class="greet">Good evening</div>
+        <div class="title">Welcome back.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div class="search"><div class="search-icon"></div>Search your library…</div>
+        <div class="avatar">C</div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Continue reading</div>
+        <div class="section-link">View all</div>
+      </div>
+      <div class="continue-row">
+        <div class="continue-card">
+          <div class="cover"></div>
+          <div class="card-body">
+            <div class="card-title">The Girl with the Sanpaku Eyes, Vol. 4</div>
+            <div class="card-meta">Sorato Shunsuke</div>
+            <div class="card-sub">Page 12 of 24</div>
+            <div class="progress"><div class="progress-fill" style="width:50%"></div></div>
+            <div class="btn-row">
+              <div class="btn btn-primary">Resume</div>
+              <div class="btn btn-soft">Details</div>
+            </div>
+          </div>
+        </div>
+        <div class="continue-card">
+          <div class="cover"></div>
+          <div class="card-body">
+            <div class="card-title">Sayonara Letter</div>
+            <div class="card-meta">Various</div>
+            <div class="card-sub">Page 3 of 18</div>
+            <div class="progress"><div class="progress-fill" style="width:17%"></div></div>
+            <div class="btn-row">
+              <div class="btn btn-primary">Resume</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head">
+        <div class="section-title">Recently added</div>
+        <div class="section-link">Explore library</div>
+      </div>
+      <div class="grid">
+        <div class="gcard"><div class="gcover"></div><div class="gbody"><div class="gtitle">Peachy Wave</div><div class="gmeta">12 pages · Unread</div></div></div>
+        <div class="gcard"><div class="gcover"></div><div class="gbody"><div class="gtitle">Sanpaku Eyes Vol.3</div><div class="gmeta">18 pages · Reading</div></div></div>
+        <div class="gcard"><div class="gcover"></div><div class="gbody"><div class="gtitle">Sayonara Letter</div><div class="gmeta">24 pages · Completed</div></div></div>
+        <div class="gcard"><div class="gcover"></div><div class="gbody"><div class="gtitle">Maid Practice</div><div class="gmeta">30 pages · Unread</div></div></div>
+        <div class="gcard"><div class="gcover"></div><div class="gbody"><div class="gtitle">Common Sense</div><div class="gmeta">16 pages · Reading</div></div></div>
+        <div class="gcard"><div class="gcover"></div><div class="gbody"><div class="gtitle">Transformation</div><div class="gmeta">22 pages · Completed</div></div></div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="font-note">Variant: Lovato display/body typeface</div>
+</body>
+</html>
