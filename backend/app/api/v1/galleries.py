@@ -1,153 +1,201 @@
-import os
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
-from fastapi.responses import FileResponse, Response
+from datetime import datetime, timezone
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from typing import Optional, List
+
 from app.db.session import get_db
+from app.models.models import Favorite, Gallery, ReadingProgress
+from app.schemas.schemas import (
+    FavoriteIn,
+    GalleryDetailOut,
+    GalleryListOut,
+    GalleryPatch,
+    ProgressIn,
+    ProgressOut,
+)
 from app.services import library as libsvc
-from app.schemas.schemas import GalleryOut, GalleryListOut, GalleryDetailOut, GalleryPatch, ProgressIn, ProgressOut, FavoriteIn, CollectionOut, CollectionCreate, CollectionPatch, CollectionItemIn, JobOut, ImportIn, LibraryRootIn, LibraryRootOut
-from app.services.jobs import get_job, list_jobs
-from app.services.importer import process_import
-from app.services.collections import *
-from app.models.models import Gallery, ReadingProgress, Favorite, Job, LibraryRoot
-from app.core.config import LIBRARY_ROOT
-import uuid
-import shutil
-from fastapi import BackgroundTasks
+from app.services.utils import mime_for
 
 router = APIRouter(prefix="/galleries", tags=["galleries"])
 
+
 @router.get("", response_model=GalleryListOut)
-def list_galleries(q: Optional[str]=None, tag: Optional[str]=None, artist: Optional[str]=None,
-                   language: Optional[str]=None, status: Optional[str]=None,
-                   favorite: Optional[bool]=None, sort: str="date_added",
-                   page: int=1, page_size: int=40, db: Session=Depends(get_db)):
-    items, total = libsvc.list_galleries(db, q=q, status=status, favorite=favorite, sort=sort, page=page, page_size=page_size)
+def list_galleries(
+    q: Optional[str] = None,
+    tag: Optional[str] = None,
+    artist: Optional[str] = None,
+    language: Optional[str] = None,
+    status: Optional[str] = None,
+    favorite: Optional[bool] = None,
+    sort: str = "date_added",
+    page: int = Query(1, ge=1),
+    page_size: int = Query(40, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
+    if sort not in {"date_added", "title", "last_opened", "page_count"}:
+        raise HTTPException(400, "Unsupported sort field")
+    items, total = libsvc.list_galleries(
+        db,
+        q=q,
+        tag=tag,
+        artist=artist,
+        language=language,
+        status=status,
+        favorite=favorite,
+        sort=sort,
+        page=page,
+        page_size=page_size,
+    )
     return {"items": items, "page": page, "page_size": page_size, "total": total}
 
+
 @router.get("/{gid}", response_model=GalleryDetailOut)
-def get_gallery(gid: str, db: Session=Depends(get_db)):
+def get_gallery(gid: str, db: Session = Depends(get_db)):
     detail = libsvc.get_gallery_detail(db, gid)
     if not detail:
         raise HTTPException(404, "Gallery not found")
     return detail
 
-@router.patch("/{gid}")
-def patch_gallery(gid: str, body: GalleryPatch, db: Session=Depends(get_db)):
-    g = libsvc.get_gallery(db, gid)
-    if not g:
+
+@router.patch("/{gid}", response_model=GalleryDetailOut)
+def patch_gallery(gid: str, body: GalleryPatch, db: Session = Depends(get_db)):
+    gallery = libsvc.get_gallery(db, gid)
+    if not gallery:
         raise HTTPException(404, "Gallery not found")
     if body.title is not None:
-        g.title = body.title
+        gallery.title = body.title.strip()
     if body.alternate_title is not None:
-        g.alternate_title = body.alternate_title
+        gallery.alternate_title = body.alternate_title.strip() or None
     if body.language is not None:
-        g.language = body.language
+        gallery.language = body.language
     if body.tags is not None:
-        # replace tags
-        from app.models.models import GalleryTag, Tag
-        # remove existing
-        db.query(GalleryTag).filter(GalleryTag.gallery_id == gid).delete()
-        for tname in body.tags:
-            norm = tname.strip().lower()
-            tag = db.query(Tag).filter(Tag.normalized_name == norm, Tag.category == "general").first()
-            if not tag:
-                tag = Tag(name=tname.strip(), normalized_name=norm, category="general")
-                db.add(tag)
-                db.commit()
-                db.refresh(tag)
-            gt = GalleryTag(gallery_id=gid, tag_id=tag.id, source="user", is_user_override=True)
-            db.add(gt)
+        libsvc.set_tags(db, gid, body.tags)
+    gallery.updated_at = datetime.now(timezone.utc)
     db.commit()
-    db.refresh(g)
+    db.refresh(gallery)
     return libsvc.get_gallery_detail(db, gid)
 
+
 @router.delete("/{gid}", status_code=204)
-def delete_gallery(gid: str, db: Session=Depends(get_db)):
-    g = libsvc.get_gallery(db, gid)
-    if not g:
+def delete_gallery(gid: str, confirm: bool = Query(False), db: Session = Depends(get_db)):
+    if not confirm:
+        raise HTTPException(400, "Explicit confirmation is required")
+    if not libsvc.delete_gallery(db, gid):
         raise HTTPException(404, "Gallery not found")
-    db.delete(g)
-    db.commit()
     return None
 
+
 @router.get("/{gid}/pages")
-def list_pages(gid: str, db: Session=Depends(get_db)):
-    g = libsvc.get_gallery(db, gid)
-    if not g:
+def list_pages(gid: str, db: Session = Depends(get_db)):
+    gallery = libsvc.get_gallery(db, gid)
+    if not gallery:
         raise HTTPException(404, "Gallery not found")
-    return [{"page_index": p.page_index, "content_url": f"/api/v1/galleries/{gid}/pages/{p.page_index}/content", "width": p.width, "height": p.height} for p in g.pages]
+    return [
+        {
+            "page_index": page.page_index,
+            "content_url": f"/api/v1/galleries/{gid}/pages/{page.page_index}/content",
+            "width": page.width,
+            "height": page.height,
+        }
+        for page in gallery.pages
+    ]
+
 
 @router.get("/{gid}/pages/{page_index}/content")
-def page_content(gid: str, page_index: int, db: Session=Depends(get_db)):
-    res = libsvc.get_page_content_path(db, gid, page_index)
-    if not res:
+def page_content(gid: str, page_index: int, db: Session = Depends(get_db)):
+    result = libsvc.get_page_content_path(db, gid, page_index)
+    if not result:
         raise HTTPException(404, "Page not found")
-    path, mime = res
-    return FileResponse(path, media_type=mime or "image/jpeg")
+    path, mime = result
+    return FileResponse(
+        path,
+        media_type=mime or mime_for(path),
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
 
 @router.get("/{gid}/cover")
-def cover(gid: str, db: Session=Depends(get_db)):
+def cover(gid: str, db: Session = Depends(get_db)):
     path = libsvc.get_cover_path(db, gid)
     if not path or not path.exists():
         raise HTTPException(404, "Cover not found")
-    return FileResponse(path, media_type="image/jpeg")
+    return FileResponse(
+        path,
+        media_type=mime_for(path),
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
 
 @router.get("/{gid}/progress", response_model=ProgressOut)
-def get_progress(gid: str, db: Session=Depends(get_db)):
-    g = libsvc.get_gallery(db, gid)
-    if not g:
+def get_progress(gid: str, db: Session = Depends(get_db)):
+    gallery = libsvc.get_gallery(db, gid)
+    if not gallery:
         raise HTTPException(404, "Gallery not found")
-    prog = g.progress
-    if not prog:
-        prog = ReadingProgress(gallery_id=gid, current_page=0, status="unread")
-        db.add(prog)
+    progress = gallery.progress
+    if not progress:
+        progress = ReadingProgress(gallery_id=gid, current_page=0, status="unread")
+        db.add(progress)
         db.commit()
-        db.refresh(prog)
-    return {"current_page": prog.current_page, "status": prog.status, "updated_at": prog.updated_at}
+        db.refresh(progress)
+    return {
+        "current_page": progress.current_page,
+        "status": progress.status,
+        "updated_at": progress.updated_at,
+    }
+
 
 @router.put("/{gid}/progress", response_model=ProgressOut)
-def set_progress(gid: str, body: ProgressIn, db: Session=Depends(get_db)):
-    g = libsvc.get_gallery(db, gid)
-    if not g:
+def set_progress(gid: str, body: ProgressIn, db: Session = Depends(get_db)):
+    gallery = libsvc.get_gallery(db, gid)
+    if not gallery:
         raise HTTPException(404, "Gallery not found")
-    if body.current_page < 0 or body.current_page >= g.page_count:
-        raise HTTPException(422, "Page index out of range")
     if body.status not in ("unread", "reading", "completed"):
-        raise HTTPException(422, "Invalid status")
-    prog = g.progress
-    if not prog:
-        prog = ReadingProgress(gallery_id=gid)
-        db.add(prog)
-    prog.current_page = body.current_page
-    prog.status = body.status
-    prog.updated_at = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
+        raise HTTPException(422, "Invalid reading status")
+    if gallery.page_count <= 0:
+        raise HTTPException(422, "Gallery has no pages")
+    if body.current_page < 0 or body.current_page >= gallery.page_count:
+        raise HTTPException(422, "Page index out of range")
+    progress = gallery.progress
+    if not progress:
+        progress = ReadingProgress(gallery_id=gid)
+        db.add(progress)
+    progress.current_page = body.current_page
+    progress.status = body.status
+    progress.updated_at = datetime.now(timezone.utc)
     if body.status == "completed":
-        prog.completed_at = prog.updated_at
-    g.last_opened_at = prog.updated_at
+        progress.completed_at = progress.updated_at
+    else:
+        progress.completed_at = None
+    gallery.last_opened_at = progress.updated_at
     db.commit()
-    db.refresh(prog)
-    return {"current_page": prog.current_page, "status": prog.status, "updated_at": prog.updated_at}
+    db.refresh(progress)
+    return {
+        "current_page": progress.current_page,
+        "status": progress.status,
+        "updated_at": progress.updated_at,
+    }
+
 
 @router.put("/{gid}/favorite")
-def set_favorite(gid: str, body: FavoriteIn, db: Session=Depends(get_db)):
-    g = libsvc.get_gallery(db, gid)
-    if not g:
+def set_favorite(gid: str, body: FavoriteIn, db: Session = Depends(get_db)):
+    gallery = libsvc.get_gallery(db, gid)
+    if not gallery:
         raise HTTPException(404, "Gallery not found")
-    fav = db.query(Favorite).filter(Favorite.gallery_id == gid).first()
-    if body.favorite:
-        if not fav:
-            db.add(Favorite(gallery_id=gid))
-    else:
-        if fav:
-            db.delete(fav)
+    favorite = db.query(Favorite).filter(Favorite.gallery_id == gid).first()
+    if body.favorite and not favorite:
+        db.add(Favorite(gallery_id=gid))
+    elif not body.favorite and favorite:
+        db.delete(favorite)
     db.commit()
     return {"favorite": body.favorite}
 
+
 @router.delete("/{gid}/favorite", status_code=204)
-def remove_favorite(gid: str, db: Session=Depends(get_db)):
-    fav = db.query(Favorite).filter(Favorite.gallery_id == gid).first()
-    if fav:
-        db.delete(fav)
+def remove_favorite(gid: str, db: Session = Depends(get_db)):
+    favorite = db.query(Favorite).filter(Favorite.gallery_id == gid).first()
+    if favorite:
+        db.delete(favorite)
         db.commit()
     return None
