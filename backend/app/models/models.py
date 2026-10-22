@@ -1,14 +1,26 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Integer, DateTime, ForeignKey, Text, Boolean, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    String,
+    Integer,
+    DateTime,
+    ForeignKey,
+    Text,
+    Boolean,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 from app.db.session import Base
+
 
 def uid():
     return str(uuid.uuid4())
 
+
 def now():
     return datetime.now(timezone.utc)
+
 
 class LibraryRoot(Base):
     __tablename__ = "library_roots"
@@ -16,6 +28,7 @@ class LibraryRoot(Base):
     path = Column(String, nullable=False, unique=True)
     created_at = Column(DateTime, default=now)
     is_enabled = Column(Boolean, default=True)
+
 
 class Gallery(Base):
     __tablename__ = "galleries"
@@ -31,13 +44,21 @@ class Gallery(Base):
     external_id = Column(String, nullable=True)
     file_size = Column(Integer, default=0)
     content_hash = Column(String, nullable=True)
+    metadata_json = Column(Text, nullable=True)
     date_added = Column(DateTime, default=now)
+    updated_at = Column(DateTime, default=now)
     last_opened_at = Column(DateTime, nullable=True)
-    pages = relationship("GalleryPage", back_populates="gallery", cascade="all, delete-orphan", order_by="GalleryPage.page_index")
+    pages = relationship(
+        "GalleryPage",
+        back_populates="gallery",
+        cascade="all, delete-orphan",
+        order_by="GalleryPage.page_index",
+    )
     tags = relationship("GalleryTag", back_populates="gallery", cascade="all, delete-orphan")
     artists = relationship("GalleryArtist", back_populates="gallery", cascade="all, delete-orphan")
     progress = relationship("ReadingProgress", back_populates="gallery", uselist=False, cascade="all, delete-orphan")
     favorites = relationship("Favorite", back_populates="gallery", uselist=False, cascade="all, delete-orphan")
+
 
 class GalleryPage(Base):
     __tablename__ = "gallery_pages"
@@ -51,6 +72,7 @@ class GalleryPage(Base):
     gallery = relationship("Gallery", back_populates="pages")
     __table_args__ = (UniqueConstraint("gallery_id", "page_index"),)
 
+
 class Tag(Base):
     __tablename__ = "tags"
     id = Column(String, primary_key=True, default=uid)
@@ -58,6 +80,7 @@ class Tag(Base):
     normalized_name = Column(String, nullable=False)
     category = Column(String, default="general")
     __table_args__ = (UniqueConstraint("normalized_name", "category"),)
+
 
 class GalleryTag(Base):
     __tablename__ = "gallery_tags"
@@ -68,11 +91,13 @@ class GalleryTag(Base):
     gallery = relationship("Gallery", back_populates="tags")
     tag = relationship("Tag")
 
+
 class Artist(Base):
     __tablename__ = "artists"
     id = Column(String, primary_key=True, default=uid)
     name = Column(String, nullable=False)
     normalized_name = Column(String, nullable=False, unique=True)
+
 
 class GalleryArtist(Base):
     __tablename__ = "gallery_artists"
@@ -81,6 +106,7 @@ class GalleryArtist(Base):
     source = Column(String, default="import")
     gallery = relationship("Gallery", back_populates="artists")
     artist = relationship("Artist")
+
 
 class ReadingProgress(Base):
     __tablename__ = "reading_progress"
@@ -91,11 +117,13 @@ class ReadingProgress(Base):
     completed_at = Column(DateTime, nullable=True)
     gallery = relationship("Gallery", back_populates="progress")
 
+
 class Favorite(Base):
     __tablename__ = "favorites"
     gallery_id = Column(String, ForeignKey("galleries.id"), primary_key=True)
     created_at = Column(DateTime, default=now)
     gallery = relationship("Gallery", back_populates="favorites")
+
 
 class Collection(Base):
     __tablename__ = "collections"
@@ -104,7 +132,13 @@ class Collection(Base):
     description = Column(String, nullable=True)
     created_at = Column(DateTime, default=now)
     updated_at = Column(DateTime, default=now)
-    items = relationship("CollectionItem", back_populates="collection", cascade="all, delete-orphan", order_by="CollectionItem.sort_order")
+    items = relationship(
+        "CollectionItem",
+        back_populates="collection",
+        cascade="all, delete-orphan",
+        order_by="CollectionItem.sort_order",
+    )
+
 
 class CollectionItem(Base):
     __tablename__ = "collection_items"
@@ -113,6 +147,7 @@ class CollectionItem(Base):
     sort_order = Column(Integer, default=0)
     collection = relationship("Collection", back_populates="items")
     gallery = relationship("Gallery")
+
 
 class Job(Base):
     __tablename__ = "jobs"
@@ -123,10 +158,25 @@ class Job(Base):
     progress_total = Column(Integer, default=0)
     error_code = Column(String, nullable=True)
     error_message = Column(Text, nullable=True)
+    payload_json = Column(Text, nullable=True)
+    result_id = Column(String, nullable=True)
+    cancel_requested = Column(Boolean, default=False)
     created_at = Column(DateTime, default=now)
     updated_at = Column(DateTime, default=now)
     started_at = Column(DateTime, nullable=True)
     finished_at = Column(DateTime, nullable=True)
+
+
+class MetadataRecord(Base):
+    __tablename__ = "metadata_records"
+    id = Column(String, primary_key=True, default=uid)
+    gallery_id = Column(String, ForeignKey("galleries.id"), nullable=False)
+    source_id = Column(String, nullable=False)
+    external_id = Column(String, nullable=True)
+    payload_json = Column(Text, nullable=False)
+    fetched_at = Column(DateTime, default=now)
+    applied = Column(Boolean, default=False)
+
 
 class AppSetting(Base):
     __tablename__ = "app_settings"
