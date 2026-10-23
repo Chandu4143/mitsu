@@ -1,10 +1,7 @@
-<<<<<<< HEAD
+
 <p align="center">
   <img src="public/screenshots/hero.png" alt="Mitsu — a local-first manga library and reader" width="960" />
 </p>
-=======
-
->>>>>>> 54eb9bedf4be6d9e468ad687693b045d13d441ab
 
 <h1 align="center">mitsu.</h1>
 
