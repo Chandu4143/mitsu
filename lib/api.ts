@@ -16,7 +16,7 @@ export type Gallery = {
   tags?: string[];
   artists?: string[];
   pages?: GalleryPage[];
-  metadata?: any[];
+  metadata?: MetadataRecord[];
 };
 
 export type GalleryPage = {
@@ -30,8 +30,10 @@ export type GalleryDetail = Gallery & {
   tags: string[];
   artists: string[];
   pages: GalleryPage[];
-  metadata: any[];
+  metadata: MetadataRecord[];
 };
+
+export type MetadataRecord = Record<string, unknown>;
 
 export type Collection = {
   id: string;
@@ -46,7 +48,7 @@ export type Collection = {
 export type Job = {
   id: string;
   type: string;
-  status: string;
+  status: "queued" | "running" | "completed" | "failed" | "cancelled";
   progress_current: number;
   progress_total: number;
   error_code?: string | null;
@@ -64,6 +66,14 @@ export type LibraryRoot = {
   is_enabled: boolean;
 };
 
+export type MetadataSource = {
+  id: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  capabilities?: string[];
+};
+
 export type Stats = {
   galleries: number;
   pages: number;
@@ -79,9 +89,67 @@ export type Settings = {
   stats: Stats;
 };
 
+export type GalleryList = {
+  items: Gallery[];
+  total: number;
+  page: number;
+  page_size: number;
+};
+
+export type Progress = {
+  current_page: number;
+  status: Gallery["reading_status"];
+  last_opened_at?: string | null;
+};
+
+export type GalleryQuery = Record<
+  string,
+  string | number | boolean | null | undefined
+>;
+
+export type GalleryPatch = Partial<
+  Pick<
+    Gallery,
+    "title" | "alternate_title" | "language" | "favorite" | "reading_status"
+  >
+> & {
+  tags?: string[];
+};
+
+export type CollectionPatch = {
+  name?: string;
+  description?: string | null;
+};
+
+export type ImportRequest = {
+  path: string;
+  source_id?: string;
+  library_root_id?: string;
+};
+
+export type SaveSettingsResponse = {
+  preferences: Record<string, string>;
+};
+
+export type RemoteSearchResult = {
+  id: string;
+  title: string;
+  cover_url?: string | null;
+  thumbnail_url?: string | null;
+  page_count?: number | null;
+  source?: string;
+  source_url?: string;
+};
+
+export type RemoteSearchResponse = {
+  items: RemoteSearchResult[];
+  page?: number;
+  total?: number;
+};
+
 const BASE = "/api/v1";
 
-async function req(path: string, init?: RequestInit) {
+async function req<T = unknown>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(BASE + path, {
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
@@ -89,7 +157,10 @@ async function req(path: string, init?: RequestInit) {
   if (!res.ok) {
     let message = res.statusText;
     try {
-      const body = await res.json();
+      const body = (await res.json()) as {
+        error?: { message?: string };
+        detail?: string;
+      };
       message = body?.error?.message || body?.detail || message;
     } catch {
       try {
@@ -100,77 +171,120 @@ async function req(path: string, init?: RequestInit) {
     }
     throw new Error(message);
   }
-  if (res.status === 204) return null;
-  return res.json();
+  if (res.status === 204) return null as T;
+  return (await res.json()) as T;
 }
 
 export const api = {
-  listGalleries: (params: Record<string, any> = {}) => {
+  listGalleries: (params: GalleryQuery = {}) => {
     const qs = new URLSearchParams();
-    Object.entries(params).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        qs.set(key, String(value));
+      }
     });
-    return req("/galleries?" + qs.toString());
+    return req<GalleryList>("/galleries?" + qs.toString());
   },
-  getGallery: (id: string) => req(`/galleries/${id}`),
-  patchGallery: (id: string, body: any) =>
-    req(`/galleries/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+  getGallery: (id: string) => req<GalleryDetail>(`/galleries/${id}`),
+  patchGallery: (id: string, body: GalleryPatch) =>
+    req<GalleryDetail>(`/galleries/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
   deleteGallery: (id: string, confirm = false) =>
-    req(`/galleries/${id}?confirm=${confirm}`, { method: "DELETE" }),
-  getPages: (id: string) => req(`/galleries/${id}/pages`),
-  getProgress: (id: string) => req(`/galleries/${id}/progress`),
+    req<null>(`/galleries/${id}?confirm=${confirm}`, { method: "DELETE" }),
+  getPages: (id: string) => req<GalleryPage[]>(`/galleries/${id}/pages`),
+  getProgress: (id: string) => req<Progress>(`/galleries/${id}/progress`),
   setProgress: (id: string, body: { current_page: number; status: string }) =>
-    req(`/galleries/${id}/progress`, { method: "PUT", body: JSON.stringify(body) }),
+    req<Progress>(`/galleries/${id}/progress`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
   setFavorite: (id: string, favorite: boolean) =>
-    req(`/galleries/${id}/favorite`, { method: "PUT", body: JSON.stringify({ favorite }) }),
-  removeFavorite: (id: string) => req(`/galleries/${id}/favorite`, { method: "DELETE" }),
+    req<Gallery>(`/galleries/${id}/favorite`, {
+      method: "PUT",
+      body: JSON.stringify({ favorite }),
+    }),
+  removeFavorite: (id: string) =>
+    req<null>(`/galleries/${id}/favorite`, { method: "DELETE" }),
 
-  listCollections: () => req("/collections"),
-  getCollection: (id: string) => req(`/collections/${id}`),
+  listCollections: () => req<Collection[]>("/collections"),
+  getCollection: (id: string) => req<Collection>(`/collections/${id}`),
   createCollection: (name: string, description?: string) =>
-    req("/collections", { method: "POST", body: JSON.stringify({ name, description }) }),
-  patchCollection: (id: string, body: any) =>
-    req(`/collections/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
-  deleteCollection: (id: string) => req(`/collections/${id}`, { method: "DELETE" }),
+    req<Collection>("/collections", {
+      method: "POST",
+      body: JSON.stringify({ name, description }),
+    }),
+  patchCollection: (id: string, body: CollectionPatch) =>
+    req<Collection>(`/collections/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+  deleteCollection: (id: string) =>
+    req<null>(`/collections/${id}`, { method: "DELETE" }),
   addCollectionItems: (id: string, gallery_ids: string[]) =>
-    req(`/collections/${id}/items`, { method: "POST", body: JSON.stringify({ gallery_ids }) }),
+    req<Collection>(`/collections/${id}/items`, {
+      method: "POST",
+      body: JSON.stringify({ gallery_ids }),
+    }),
   removeCollectionItem: (id: string, galleryId: string) =>
-    req(`/collections/${id}/items/${galleryId}`, { method: "DELETE" }),
+    req<null>(`/collections/${id}/items/${galleryId}`, { method: "DELETE" }),
   reorderCollectionItems: (id: string, gallery_ids: string[]) =>
-    req(`/collections/${id}/items/order`, {
+    req<Collection>(`/collections/${id}/items/order`, {
       method: "PATCH",
       body: JSON.stringify({ gallery_ids }),
     }),
 
-  startImport: (body: any) => req("/imports", { method: "POST", body: JSON.stringify(body) }),
-  listImports: () => req("/imports"),
-  getImport: (id: string) => req(`/imports/${id}`),
-  retryImport: (id: string) => req(`/imports/${id}/retry`, { method: "POST" }),
-  cancelImport: (id: string) => req(`/imports/${id}/cancel`, { method: "POST" }),
+  startImport: (body: ImportRequest) =>
+    req<Job>("/imports", { method: "POST", body: JSON.stringify(body) }),
+  listImports: () => req<Job[]>("/imports"),
+  getImport: (id: string) => req<Job>(`/imports/${id}`),
+  retryImport: (id: string) =>
+    req<Job>(`/imports/${id}/retry`, { method: "POST" }),
+  cancelImport: (id: string) =>
+    req<Job>(`/imports/${id}/cancel`, { method: "POST" }),
 
-  listLibraryRoots: () => req("/library-roots"),
+  listLibraryRoots: () => req<LibraryRoot[]>("/library-roots"),
   createLibraryRoot: (path: string) =>
-    req("/library-roots", { method: "POST", body: JSON.stringify({ path }) }),
-  deleteLibraryRoot: (id: string) => req(`/library-roots/${id}`, { method: "DELETE" }),
+    req<LibraryRoot>("/library-roots", {
+      method: "POST",
+      body: JSON.stringify({ path }),
+    }),
+  deleteLibraryRoot: (id: string) =>
+    req<null>(`/library-roots/${id}`, { method: "DELETE" }),
 
-  getSettings: () => req("/settings"),
-  saveSettings: (body: any) => req("/settings", { method: "PUT", body: JSON.stringify(body) }),
-  getStats: () => req("/stats"),
+  getSettings: () => req<Settings>("/settings"),
+  saveSettings: (body: Record<string, string>) =>
+    req<SaveSettingsResponse>("/settings", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  getStats: () => req<Stats>("/stats"),
 
-  listMetadataSources: () => req("/metadata/sources"),
+  listMetadataSources: () =>
+    req<MetadataSource[]>("/metadata/sources"),
   lookupMetadata: (galleryId: string, sourceId = "local") =>
-    req(`/galleries/${galleryId}/metadata/lookup`, {
+    req<MetadataRecord[]>(`/galleries/${galleryId}/metadata/lookup`, {
       method: "POST",
       body: JSON.stringify({ source_id: sourceId }),
     }),
-  applyMetadata: (galleryId: string, recordId: string, fields: string[] = []) =>
-    req(`/galleries/${galleryId}/metadata/apply`, {
+  applyMetadata: (
+    galleryId: string,
+    recordId: string,
+    fields: string[] = []
+  ) =>
+    req<GalleryDetail>(`/galleries/${galleryId}/metadata/apply`, {
       method: "POST",
       body: JSON.stringify({ record_id: recordId, fields }),
     }),
 
   searchNhentai: (q: string, page = 1) =>
-    req(`/providers/nhentai/search?q=${encodeURIComponent(q)}&page=${page}`),
+    req<RemoteSearchResponse>(
+      `/providers/nhentai/search?q=${encodeURIComponent(q)}&page=${page}`
+    ),
   importNhentai: (id: string) =>
-    req("/providers/nhentai/import", { method: "POST", body: JSON.stringify({ id }) }),
+    req<Job>("/providers/nhentai/import", {
+      method: "POST",
+      body: JSON.stringify({ id }),
+    }),
 };

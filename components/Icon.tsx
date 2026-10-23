@@ -26,11 +26,15 @@ export type IconName =
   | "arrow-right"
   | "chevron-down"
   | "chevron-up"
+  | "chevron-right"
   | "more"
   | "refresh"
   | "upload"
   | "tag"
-  | "user";
+  | "user"
+  | "sliders"
+  | "expand"
+  | "bookmark";
 
 const paths: Record<IconName, ReactNode> = {
   home: (
@@ -171,6 +175,7 @@ const paths: Record<IconName, ReactNode> = {
   ),
   "chevron-down": <path d="m6 9 6 6 6-6" />,
   "chevron-up": <path d="m6 15 6-6 6 6" />,
+  "chevron-right": <path d="m9 6 6 6-6 6" />,
   more: (
     <>
       <circle cx="5" cy="12" r="1.5" />
@@ -203,6 +208,25 @@ const paths: Record<IconName, ReactNode> = {
       <path d="M4 21a8 8 0 0 1 16 0" />
     </>
   ),
+  sliders: (
+    <>
+      <path d="M4 7h9" />
+      <path d="M17 7h3" />
+      <circle cx="15" cy="7" r="2" />
+      <path d="M4 17h3" />
+      <path d="M11 17h9" />
+      <circle cx="9" cy="17" r="2" />
+    </>
+  ),
+  expand: (
+    <>
+      <path d="M9 4H4v5" />
+      <path d="M15 4h5v5" />
+      <path d="M9 20H4v-5" />
+      <path d="M15 20h5v-5" />
+    </>
+  ),
+  bookmark: <path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-4-6 4V4.5Z" />,
 };
 
 type IconProps = SVGProps<SVGSVGElement> & {

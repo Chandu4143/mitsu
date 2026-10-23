@@ -7,6 +7,34 @@ import { api, type Collection, type Gallery } from "@/lib/api";
 import { Icon } from "@/components/Icon";
 import { Button, EmptyState, Modal, Skeleton } from "@/components/ui";
 
+function CollectionCover({ covers }: { covers?: Gallery[] }) {
+  const items = covers || [];
+  return (
+    <div className="flex h-full gap-0.5 bg-primary-soft">
+      {items.length === 0
+        ? Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="flex-1 border-r border-white/60 bg-surface/55 last:border-r-0">
+              <div className="flex h-full items-center justify-center text-primary/40">
+                <Icon name="image" size={16} />
+              </div>
+            </div>
+          ))
+        : items.map((gallery) => (
+            <div key={gallery.id} className="min-w-0 flex-1 overflow-hidden bg-surface">
+              {gallery.cover_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={gallery.cover_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full items-center justify-center text-primary">
+                  <Icon name="image" size={16} />
+                </div>
+              )}
+            </div>
+          ))}
+    </div>
+  );
+}
+
 function CollectionsInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -41,11 +69,13 @@ function CollectionsInner() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, []);
 
   useEffect(() => {
     const add = searchParams.get("add");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (add) setPendingGallery(add);
   }, [searchParams]);
 
@@ -78,41 +108,54 @@ function CollectionsInner() {
 
   return (
     <>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <header className="flex items-end justify-between gap-4 pt-1 md:pt-0">
         <div>
-          <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-text">Collections</h1>
-          <p className="text-[13px] text-text-secondary">
-            Organize galleries into reading lists and themes.
+          <h1 className="text-[34px] font-extrabold leading-none tracking-[-0.045em] text-text md:text-[40px]">
+            Collections
+          </h1>
+          <p className="mt-2 max-w-[36ch] text-[13px] leading-relaxed text-text-secondary">
+            Reading lists for a mood, a series, or a rainy afternoon.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
-          <Icon name="plus" size={16} /> New collection
-        </Button>
-      </div>
+        <div className="hidden md:block">
+          <Button onClick={() => setCreateOpen(true)} aria-label="New collection">
+            <Icon name="plus" size={16} />
+            New collection
+          </Button>
+        </div>
+        <button
+          type="button"
+          onClick={() => setCreateOpen(true)}
+          aria-label="New collection"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary md:hidden"
+        >
+          <Icon name="plus" size={20} />
+        </button>
+      </header>
 
       {pendingGallery && (
-        <div className="rounded-lg border border-primary/30 bg-primary-soft px-4 py-3 text-[13px] text-primary">
-          Choose or create a collection for the selected gallery.
+        <div className="rounded-2xl border border-primary/20 bg-primary-soft px-4 py-3 text-[13px] text-primary">
+          Choose a collection for the selected gallery, or create a new one.
         </div>
       )}
 
       {error && (
-        <div className="rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-[13px] text-danger">
+        <div className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-[13px] text-danger">
           {error}
         </div>
       )}
 
       {loading ? (
-        <div className="flex flex-wrap gap-5">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-[218px] w-[320px]" />
+        <div className="grid grid-cols-1 gap-4 min-[390px]:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-[228px] w-full rounded-[24px]" />
           ))}
         </div>
       ) : collections.length === 0 ? (
         <EmptyState
           icon="collections"
           title="No collections yet"
-          description="Create a collection to group galleries by mood, series, or reading plan."
+          description="Group galleries into reading lists and keep the next book ready."
           action={
             <Button variant="soft" onClick={() => setCreateOpen(true)}>
               Create collection
@@ -120,57 +163,44 @@ function CollectionsInner() {
           }
         />
       ) : (
-        <div className="flex flex-wrap gap-5">
+        <div className="grid grid-cols-1 gap-4 min-[390px]:grid-cols-2 xl:grid-cols-3">
           {collections.map((collection) => (
-            <div
+            <article
               key={collection.id}
-              className="group flex w-[320px] flex-col overflow-hidden rounded-lg border border-border bg-surface transition hover:border-primary"
+              className="group overflow-hidden rounded-[24px] border border-border/80 bg-surface transition hover:border-border-strong"
             >
               <Link href={`/collections/${collection.id}`} className="block">
-                <div className="flex h-[170px] gap-1 bg-primary-soft p-3">
-                  {(covers[collection.id] || []).length === 0
-                    ? Array.from({ length: 3 }).map((_, index) => (
-                        <div key={index} className="flex-1 rounded-sm border border-border bg-surface/70" />
-                      ))
-                    : (covers[collection.id] || []).map((gallery) => (
-                        <div key={gallery.id} className="flex-1 overflow-hidden rounded-sm bg-surface">
-                          {gallery.cover_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={gallery.cover_url} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-primary">
-                              <Icon name="image" size={18} />
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                <div className="h-[126px] overflow-hidden md:h-[178px]">
+                  <CollectionCover covers={covers[collection.id]} />
                 </div>
               </Link>
-              <div className="flex items-center justify-between px-4 py-3.5">
+              <div className="flex items-center gap-2 px-3 py-3.5">
                 <Link href={`/collections/${collection.id}`} className="min-w-0 flex-1">
-                  <div className="truncate text-[15px] font-bold text-text">{collection.name}</div>
-                  <div className="text-[12px] text-text-secondary">
-                    {collection.item_count} galleries
+                  <div className="truncate text-[14px] font-bold tracking-[-0.02em] text-text">
+                    {collection.name}
+                  </div>
+                  <div className="mt-0.5 text-[11px] text-text-muted">
+                    {collection.item_count} {collection.item_count === 1 ? "gallery" : "galleries"}
                   </div>
                 </Link>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => renameCollection(collection)}
-                    className="rounded-md p-1.5 text-text-muted hover:bg-primary-soft hover:text-primary"
-                    aria-label="Rename collection"
-                  >
-                    <Icon name="edit" size={15} />
-                  </button>
-                  <button
-                    onClick={() => removeCollection(collection.id)}
-                    className="rounded-md p-1.5 text-text-muted hover:bg-danger/10 hover:text-danger"
-                    aria-label="Delete collection"
-                  >
-                    <Icon name="trash" size={15} />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => renameCollection(collection)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition hover:bg-surface-soft hover:text-text"
+                  aria-label="Rename collection"
+                >
+                  <Icon name="edit" size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeCollection(collection.id)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition hover:bg-danger/10 hover:text-danger"
+                  aria-label="Delete collection"
+                >
+                  <Icon name="trash" size={15} />
+                </button>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       )}
@@ -182,20 +212,23 @@ function CollectionsInner() {
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="Collection name"
-              className="rounded-md border border-border bg-bg px-3 py-2 text-[14px] text-text outline-none focus:border-primary"
+              autoFocus
+              className="min-h-12 rounded-2xl border border-border bg-surface-soft px-4 text-[16px] text-text outline-none focus:border-primary md:text-[14px]"
             />
             <textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Description (optional)"
               rows={3}
-              className="rounded-md border border-border bg-bg px-3 py-2 text-[14px] text-text outline-none focus:border-primary"
+              className="rounded-2xl border border-border bg-surface-soft px-4 py-3 text-[16px] text-text outline-none focus:border-primary md:text-[14px]"
             />
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-1">
               <Button variant="ghost" onClick={() => setCreateOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={create}>Create</Button>
+              <Button onClick={create} disabled={!name.trim()}>
+                Create
+              </Button>
             </div>
           </div>
         </Modal>
@@ -206,9 +239,8 @@ function CollectionsInner() {
 
 export default function CollectionsPage() {
   return (
-    <Suspense fallback={<div className='text-text-muted text-[13px]'>Loading...</div>}>
+    <Suspense fallback={<div className="text-[13px] text-text-muted">Loading collections…</div>}>
       <CollectionsInner />
     </Suspense>
   );
 }
-

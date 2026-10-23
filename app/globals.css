@@ -1,59 +1,89 @@
 @import "tailwindcss";
 
 @theme {
-  /* Colors */
-  --color-bg: #fff7fa;
+  /* Colour — warm paper, plum ink, one confident rose accent. */
+  --color-bg: #fbf7f4;
+  --color-bg-deep: #f3eae6;
   --color-surface: #ffffff;
+  --color-surface-soft: #f8f1ed;
   --color-surface-elevated: #ffffff;
-  --color-border: #ebdce3;
-  --color-border-strong: #d9c4ce;
-  --color-text: #463440;
-  --color-text-secondary: #956a7d;
-  --color-text-muted: #b89aa8;
-  --color-primary: #b9698d;
-  --color-primary-hover: #a35a7d;
-  --color-primary-soft: #f4e3eb;
-  --color-accent: #d98ba8;
-  --color-success: #6b9e7a;
-  --color-warning: #c99a5c;
-  --color-danger: #c96b6b;
-  --color-info: #6b8fc9;
-  --color-reader-bg: #1a1618;
-  --color-reader-surface: #262023;
-  --color-reader-text: #e8dce2;
+  --color-border: #ece0e2;
+  --color-border-strong: #ddcbd2;
+  --color-text: #31262f;
+  --color-text-secondary: #7d6974;
+  --color-text-muted: #a78f9b;
+  --color-primary: #b35f86;
+  --color-primary-hover: #9b4d71;
+  --color-primary-soft: #f8e6ee;
+  --color-primary-deep: #6d354e;
+  --color-accent: #dfa4bd;
+  --color-success: #5e8e6d;
+  --color-warning: #b88446;
+  --color-danger: #bf5b5b;
+  --color-info: #5d7fb7;
+  --color-reader-bg: #141114;
+  --color-reader-surface: #201b1f;
+  --color-reader-text: #f2e9ed;
 
   /* Typography */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   /* Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 24px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 30px;
   --radius-full: 9999px;
 
-  /* Shadows (subtle) */
-  --shadow-card: 0 1px 2px rgba(70, 52, 64, 0.04), 0 4px 12px rgba(70, 52, 64, 0.04);
+  /* Depth */
+  --shadow-card: 0 1px 1px rgba(73, 47, 61, 0.04), 0 12px 30px -20px rgba(73, 47, 61, 0.28);
+  --shadow-float: 0 2px 4px rgba(73, 47, 61, 0.05), 0 24px 60px -24px rgba(73, 47, 61, 0.35);
+  --shadow-cover: 0 12px 28px -14px rgba(55, 33, 45, 0.55);
 }
 
-html,
-body {
+html {
   background: var(--color-bg);
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
   color: var(--color-text);
+  background:
+    radial-gradient(1100px 460px at 50% -180px, rgba(255, 255, 255, 0.92), transparent 70%),
+    var(--color-bg);
   font-family: var(--font-sans);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
+  text-rendering: optimizeLegibility;
 }
 
 * {
   box-sizing: border-box;
+}
+
+::selection {
+  color: var(--color-primary-deep);
+  background: #f4d6e2;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
 }
 
 button,
@@ -61,18 +91,133 @@ a {
   cursor: pointer;
 }
 
+button:disabled {
+  cursor: not-allowed;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+/* A quiet app chrome: the scrollbar is visible on desktop, absent on touch. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border: 2px solid var(--color-bg);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.page-enter {
+  animation: page-in 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sheet-in {
+  animation: sheet-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.fade-in {
+  animation: fade-in 240ms ease-out both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .skeleton {
-  background: linear-gradient(90deg, var(--color-primary-soft) 0%, var(--color-surface) 50%, var(--color-primary-soft) 100%);
-  background-size: 200% 100%;
-  animation: mitsu-shimmer 1.4s ease-in-out infinite;
+  background: linear-gradient(
+    100deg,
+    var(--color-primary-soft) 0%,
+    var(--color-surface) 45%,
+    var(--color-primary-soft) 100%
+  );
+  background-size: 220% 100%;
+  animation: mitsu-shimmer 1.6s ease-in-out infinite;
   border-radius: var(--radius-md);
 }
+
 @keyframes mitsu-shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 220% 0;
+  }
+  100% {
+    background-position: -220% 0;
+  }
 }
-:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
-::selection { background: var(--color-primary-soft); color: var(--color-primary); }
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--color-border-strong); border-radius: 9999px; }
-::-webkit-scrollbar-track { background: transparent; }
+
+.safe-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+.safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+.reader-tap {
+  touch-action: manipulation;
+}
+
+/* Text fields keep a 16px floor on phones, so iOS never zooms the page. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

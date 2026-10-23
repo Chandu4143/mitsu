@@ -1,183 +1,185 @@
 <p align="center">
-  <img src="public/screenshots/01-home.png" alt="Mitsu — Home dashboard" width="720" />
+  <img src="public/screenshots/hero.png" alt="Mitsu — a local-first manga library and reader" width="960" />
 </p>
 
 <h1 align="center">mitsu.</h1>
 
 <p align="center">
-  <em>your little reading corner — a local-first manga library &amp; reader</em>
+  <em>A quiet, local-first manga library and reader. Your files, your machine, your pace.</em>
 </p>
 
 <p align="center">
-  <img alt="Stack" src="https://img.shields.io/badge/Next.js_16-black?style=flat-square&logo=nextdotjs" />
-  <img alt="Stack" src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
-  <img alt="Stack" src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white" />
-  <img alt="Stack" src="https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" />
+  <img alt="Next.js" src="https://img.shields.io/badge/Next.js_16-111111?style=flat-square&logo=nextdotjs&logoColor=white" />
+  <img alt="React" src="https://img.shields.io/badge/React_19-149eca?style=flat-square&logo=react&logoColor=white" />
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" />
+  <img alt="SQLite" src="https://img.shields.io/badge/SQLite-003B57?style=flat-square&logo=sqlite&logoColor=white" />
+  <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind_CSS_v4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/license-MIT-B9698D?style=flat-square" />
 </p>
 
 ---
 
-Mitsu is a **local-first** manga library and reader inspired by [Peach](https://github.com/peachs). React + Next.js frontend, Python + FastAPI backend, SQLite storage. Everything runs on your machine — **no accounts, no cloud, no telemetry**.
+Mitsu is a **local-first** manga library and reader. It runs entirely on your own machine — no accounts, no cloud, no telemetry. Import CBZ, ZIP, image folders, or remote galleries, read them in a focused reader, and keep your collection organised in collections and reading lists. The interface is mobile-first, with an iOS-style navigation shell, and works just as well on a desktop browser.
 
-## ✨ Screenshots
+## What's inside
 
-<details open>
-<summary><strong>Home — Dashboard</strong></summary>
-<br/>
-<img src="public/screenshots/01-home.png" alt="Home dashboard with continue reading, recently added, and favorites" width="720" />
-</details>
+- **Mobile-first shell** — fixed translucent top bar, five-item bottom tab bar, “More” bottom sheet, and a desktop rail from the same component tree.
+- **Reader** — single-page and continuous scroll, RTL and LTR, fit-to-width or fit-to-screen, adjustable backgrounds, fullscreen, keyboard navigation, and progress that is saved automatically.
+- **Library** — search, filters, sorting, grid and list views, favorites, and reading status.
+- **Collections** — group galleries, reorder items, and jump back into reading.
+- **Imports** — CBZ, ZIP, image folders, and library roots with live job progress, retry, and cancellation.
+- **Discover** — local metadata sources and optional remote search.
+- **Settings** — grouped preferences, library roots, and a live overview of your collection.
 
-<details>
-<summary><strong>Library — Grid view</strong></summary>
-<br/>
-<img src="public/screenshots/02-library-grid.png" alt="Library grid view with search, filters, and sorting" width="720" />
-</details>
+## Screenshots
 
-<details>
-<summary><strong>Library — List view</strong></summary>
-<br/>
-<img src="public/screenshots/03-library-list.png" alt="Library list view" width="720" />
-</details>
+### Mobile
 
-<details>
-<summary><strong>Gallery — Detail page</strong></summary>
-<br/>
-<img src="public/screenshots/04-gallery-detail.png" alt="Gallery detail with metadata, tags, progress, and page thumbnails" width="720" />
-</details>
+<p align="center">
+  <img src="public/screenshots/mobile/01-home.png" alt="Home" width="220" />
+  <img src="public/screenshots/mobile/02-library.png" alt="Library" width="220" />
+  <img src="public/screenshots/mobile/03-gallery.png" alt="Gallery detail" width="220" />
+</p>
+<p align="center">
+  <img src="public/screenshots/mobile/04-collections.png" alt="Collections" width="220" />
+  <img src="public/screenshots/mobile/05-imports.png" alt="Imports" width="220" />
+  <img src="public/screenshots/mobile/06-reader.png" alt="Reader" width="220" />
+</p>
 
-<details>
-<summary><strong>Reader</strong></summary>
-<br/>
-<img src="public/screenshots/05-reader.png" alt="Reader with single-page and continuous scroll modes" width="720" />
-</details>
+### Desktop
 
-<details>
-<summary><strong>Imports</strong></summary>
-<br/>
-<img src="public/screenshots/06-imports.png" alt="Import manager with live progress and library roots" width="720" />
-</details>
+<p align="center">
+  <img src="public/screenshots/desktop/01-home.png" alt="Home on desktop" width="480" />
+  <img src="public/screenshots/desktop/02-library.png" alt="Library on desktop" width="480" />
+</p>
+<p align="center">
+  <img src="public/screenshots/desktop/03-gallery.png" alt="Gallery detail on desktop" width="480" />
+  <img src="public/screenshots/desktop/04-collections.png" alt="Collections on desktop" width="480" />
+</p>
+<p align="center">
+  <img src="public/screenshots/desktop/05-imports.png" alt="Imports on desktop" width="480" />
+  <img src="public/screenshots/desktop/06-discover.png" alt="Discover on desktop" width="480" />
+</p>
 
-## 🎯 Features
+> Cover art is blurred in these screenshots because the library contains adult content. Personal filesystem paths are redacted to `~/library`.
 
-| | |
-| --- | --- |
-| 📚 **Library** | Browse your collection as a cover grid or list. Search by title, tags, artists. Filter by status. Sort by date, title, or page count. |
-| 📖 **Reader** | Single-page & continuous-scroll modes, keyboard navigation, fit-to-width/screen, fullscreen, dark background, LTR/RTL reading direction. Progress saves automatically. |
-| 📦 **Import** | Drop in a CBZ/ZIP archive, a folder of images, or a single image file. Background import with live progress. Duplicate detection by content hash. ComicInfo.xml parsing. |
-| ⭐ **Favorites** | Star galleries from anywhere — cards, detail pages, or the library. |
-| 📁 **Collections** | Organize galleries into manually curated collections. |
-| 🔍 **Discover** | *(Optional)* Search nhentai.net and import galleries directly. Requires `cloudscraper` — everything works without it. |
-| 🔒 **Private** | Runs on `localhost`. No accounts, no tracking. Your files never leave your machine. |
-
-## 🚀 Getting started
+## Quick start
 
 ### Requirements
 
-- **Node.js 18+** and [pnpm](https://pnpm.io/) (`npm install -g pnpm`)
-- **Python 3.12+**
+- Python 3.11 or newer
+- Node.js 20 or newer
+- pnpm
+- Google Chrome (only for regenerating screenshots)
 
-### 1. Install dependencies
+### Install
 
 ```bash
-# Frontend
+git clone https://github.com/your-user/mitsu.git
+cd mitsu
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
+pip install -r backend/requirements.txt
 pnpm install
-
-# Backend
-python -m pip install -r backend/requirements.txt
 ```
 
-> **Windows note:** if `python` isn't found, try `py -m pip install -r backend/requirements.txt` (and make sure Python is on your PATH).
-
-### 2. Start everything
+### Run
 
 ```bash
 python run.py
 ```
 
-This starts the backend API on `http://127.0.0.1:8000` and the frontend on `http://localhost:3000`. Press `Ctrl+C` to stop both.
+Then open:
 
-You can also run them separately:
+- Frontend: <http://127.0.0.1:3000>
+- Backend API: <http://127.0.0.1:8000>
 
-```bash
-# Backend
-cd backend
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+`run.py` starts both services and shuts them down together. Press `Ctrl+C` to stop.
 
-# Frontend (in another terminal, from repo root)
-pnpm dev
-```
+## Importing a library
 
-Then open **http://localhost:3000**.
+Mitsu does not move your original files. Imports are copied into the managed library directory, so the source files stay where they are.
 
-## 📦 Importing manga
+1. Open **Imports** from the sidebar or the “More” sheet.
+2. Paste an absolute path to a CBZ, ZIP, image, or folder, or register a library root.
+3. Watch the job progress. Failed or cancelled jobs can be retried or dismissed.
 
-1. Go to **Imports** (`/imports`)
-2. Paste the **absolute path** to a `.cbz`/`.zip` archive, a folder of images, or a single image
-3. Click **Import** — progress is tracked in real time
+Supported inputs:
 
-**Good to know:**
-- Original files are **never moved or deleted** — Mitsu copies them into its own library
-- Duplicates are detected by content hash (safe to re-import)
-- `ComicInfo.xml` metadata (title, writer, language, genres) is parsed automatically
+- `.cbz` and `.zip` archives
+- Folders of images
+- Library roots for repeated imports
 
-## 🔍 Discover / nhentai *(optional)*
+## Configuration
 
-The Discover page lets you search nhentai.net and import galleries. It's **entirely opt-in**:
-
-- Powered by `cloudscraper` (listed in `backend/requirements.txt`)
-- Skip or remove `cloudscraper` to disable it — everything else works normally
-- When disabled, the API returns a clear `503` and the UI shows "provider unavailable"
-
-## ⚙️ Configuration
-
-No configuration required. All options are environment variables — see [`.env.example`](.env.example) for the full list.
+Copy `.env.example` to `backend/.env` (or export the values in your shell). Every value has a sensible default.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `MITSU_DATA_DIR` | `<repo>/data` | SQLite DB, thumbnails, and cache |
+| `MITSU_DATA_DIR` | `<repo>/data` | SQLite database, thumbnails, and cache |
 | `MITSU_LIBRARY_ROOT` | `<data>/library` | Where imported galleries are stored |
-| `MITSU_HOST` / `MITSU_PORT` | `127.0.0.1` / `8000` | Backend bind address |
-| `MITSU_FRONTEND_ORIGIN` | `http://localhost:3000` | Allowed CORS origin |
-| `MITSU_MAX_ARCHIVE_BYTES` | `4 GiB` | Max single archive size |
-| `MITSU_MAX_EXTRACTED_BYTES` | `8 GiB` | Max size once extracted |
-| `MITSU_MAX_ARCHIVE_ENTRIES` | `20 000` | Max files per archive |
-| `MITSU_MAX_IMAGE_PIXELS` | `80 MP` | Decompression-bomb guard |
+| `MITSU_HOST` | `127.0.0.1` | Backend bind address |
+| `MITSU_PORT` | `8000` | Backend port |
+| `MITSU_FRONTEND_ORIGIN` | `http://localhost:3000` | Allowed CORS origin for the frontend |
 
-Set values in your shell or in `backend/.env` (gitignored — copy from `.env.example`).
+The frontend talks to the backend through a Next.js rewrite, so the browser only needs to reach port `3000`.
 
-## 💾 Data & backup
+## Architecture
 
-Everything lives under `data/` — a single folder, gitignored, easy to back up:
-
-```
-data/
-  database/mitsu.db   ← the SQLite database
-  library/            ← imported gallery files
-  thumbnails/         ← derived, safe to delete (regenerates lazily)
-  cache/              ← transient
+```text
+┌──────────────────────┐      HTTP / JSON      ┌──────────────────────┐
+│  Next.js 16          │ ────────────────────▶ │  FastAPI             │
+│  React 19            │ ◀──────────────────── │  Python              │
+│  Tailwind CSS v4     │   /api/v1 rewrite     │  SQLAlchemy + SQLite │
+└──────────────────────┘                       └──────────────────────┘
 ```
 
-**Backup:** stop the app, copy `data/`. To keep it minimal, just back up `data/database/mitsu.db`.
+- `app/` — Next.js App Router pages and layouts
+- `components/` — shared UI, icons, and the navigation shell
+- `lib/api.ts` — typed client for the backend
+- `backend/app/` — FastAPI routes, services, and database models
+- `data/` — local database, library, thumbnails, and cache (gitignored)
 
-## 🛠 Development
+## Development
 
-| | |
-| --- | --- |
-| **Backend** | `backend/app/` — FastAPI + SQLAlchemy. Restart after edits. |
-| **Frontend** | `app/` — Next.js App Router with Tailwind CSS. Hot reload via `pnpm dev`. |
+```bash
+pnpm dev          # Next.js dev server
+pnpm lint         # ESLint
+pnpm typecheck    # TypeScript without emitting
+pnpm build        # Production build
+pnpm screenshots  # Regenerate README screenshots
+```
 
-## 🐛 Troubleshooting
+Run the backend separately if you prefer:
 
-| Problem | Fix |
-| --- | --- |
-| `ModuleNotFoundError: No module named 'fastapi'` | Run `python -m pip install -r backend/requirements.txt` |
-| Port 8000 or 3000 already in use | Stop the other process, or set `MITSU_PORT` / `pnpm dev -- -p 3001` |
-| Import fails with "Path not found" | Use an absolute path (`C:\Users\you\manga`, not `~\manga`) |
-| Import fails with "Archive exceeds size limit" | Raise `MITSU_MAX_ARCHIVE_BYTES` in `.env` |
-| Page shows blank / image fails | Delete `data/cache/` and `data/thumbnails/`, restart |
-| Discover shows "provider unavailable" | `cloudscraper` isn't installed |
+```bash
+cd backend
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
 
-## 📄 License
+Screenshot capture expects Chrome at `C:/Program Files/Google/Chrome/Application/chrome.exe` and a running app. Override either with `CHROME_PATH` or `MITSU_SCREENSHOT_URL`. Screenshots are written to `public/screenshots/`.
 
-MIT — see [LICENSE](LICENSE).
+## Data and backups
+
+Everything lives under `data/`:
+
+- `data/database/mitsu.db` — gallery metadata, collections, jobs, and settings
+- `data/library/` — imported gallery copies
+- `data/thumbnails/` — generated covers (safe to delete; regenerated on demand)
+- `data/cache/` — transient cache
+
+To back up your collection, copy `data/database/mitsu.db` and `data/library/`. Thumbnails and cache can be regenerated.
+
+## Troubleshooting
+
+- **The frontend loads but no galleries appear.** Make sure the backend is running on port `8000` and that you have imported at least one gallery.
+- **Imports fail.** Check that the path is absolute and that the files are readable. Library roots must point at existing directories.
+- **Port already in use.** Stop the other process, or change `MITSU_PORT` and the frontend origin accordingly.
+- **Screenshot capture fails.** Ensure the app is running, Chrome is installed, and `CHROME_PATH` points at it if it is not in the default location.
+
+## License
+
+MIT.

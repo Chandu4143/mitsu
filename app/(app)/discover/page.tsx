@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, type Gallery, type MetadataSource } from "@/lib/api";
 import { Icon } from "@/components/Icon";
-import { Button, EmptyState, Skeleton } from "@/components/ui";
+import { EmptyState, Skeleton } from "@/components/ui";
 
 type ImportState = {
   status: "queued" | "running" | "completed" | "failed" | "cancelled";
@@ -31,9 +31,9 @@ type ImportJob = {
 export default function Discover() {
   const [q, setQ] = useState("");
   const [debounced, setDebounced] = useState("");
-  const [local, setLocal] = useState<any[]>([]);
+  const [local, setLocal] = useState<Gallery[]>([]);
   const [loading, setLoading] = useState(false);
-  const [sources, setSources] = useState<any[]>([]);
+  const [sources, setSources] = useState<MetadataSource[]>([]);
   const [remote, setRemote] = useState<RemoteItem[]>([]);
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [importingId, setImportingId] = useState<string | null>(null);
@@ -52,31 +52,32 @@ export default function Discover() {
 
   useEffect(() => {
     if (!debounced.trim()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocal([]);
       return;
     }
     setLoading(true);
     api
       .listGalleries({ q: debounced.trim(), page_size: 12 })
-      .then((response: any) => setLocal(response.items || []))
+      .then((response) => setLocal(response.items || []))
       .catch(() => setLocal([]))
       .finally(() => setLoading(false));
   }, [debounced]);
 
   useEffect(() => {
     if (!debounced.trim()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRemote([]);
       return;
     }
     setRemoteLoading(true);
     api
       .searchNhentai(debounced.trim(), 1)
-      .then((response: any) => setRemote(response.items || []))
+      .then((response) => setRemote(response.items || []))
       .catch(() => setRemote([]))
       .finally(() => setRemoteLoading(false));
   }, [debounced]);
 
-  // Poll the import jobs started from this page so each card can show real progress.
   useEffect(() => {
     const keys = Object.keys(tracked);
     if (keys.length === 0) return;
@@ -104,7 +105,7 @@ export default function Discover() {
           return changed ? next : current;
         });
       } catch {
-        // ignore polling errors
+        // Polling is best effort.
       }
     };
     poll();
@@ -115,7 +116,6 @@ export default function Discover() {
     };
   }, [tracked]);
 
-  // Summarize the live state of every import started from this page.
   const trackedSummary = (() => {
     const states = Object.values(importStates);
     if (states.length === 0) return null;
@@ -128,7 +128,7 @@ export default function Discover() {
     if (active > 0) {
       return {
         tone: "info" as const,
-        text: `Importing ${active} ${galleries(active)}… this can take a moment.`,
+        text: `Importing ${active} ${galleries(active)}…`,
       };
     }
     if (failed > 0) {
@@ -140,7 +140,7 @@ export default function Discover() {
     if (done > 0) {
       return {
         tone: "success" as const,
-        text: `Import complete — ${done} ${galleries(done)} added to your library.`,
+        text: `Added ${done} ${galleries(done)} to your library.`,
       };
     }
     return null;
@@ -148,39 +148,54 @@ export default function Discover() {
 
   return (
     <>
-      <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-text">Discover</h1>
-      <p className="text-[13px] text-text-secondary">
-        Search your local library instantly. Remote metadata sources stay optional and disabled by default.
-      </p>
+      <header className="pt-1 md:pt-0">
+        <h1 className="text-[34px] font-extrabold leading-none tracking-[-0.045em] text-text md:text-[40px]">
+          Discover
+        </h1>
+        <p className="mt-2 max-w-[54ch] text-[13px] leading-relaxed text-text-secondary">
+          Search your own shelves, or look up a gallery code. Remote sources stay opt-in.
+        </p>
+      </header>
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <div className="relative flex-1">
-          <Icon name="search" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-          <input
-            value={q}
-            onChange={(event) => setQ(event.target.value)}
-            placeholder="Search titles, artists, tags… or enter a gallery code like 689735"
-            className="w-full rounded-full border border-border bg-surface py-2.5 pl-9 pr-4 text-[14px] text-text outline-none transition focus:border-primary placeholder:text-text-muted"
-          />
-        </div>
-        <Button variant="ghost" onClick={() => setQ("")}>
-          Clear
-        </Button>
+      <div className="relative">
+        <Icon
+          name="search"
+          size={18}
+          className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-text-muted"
+        />
+        <input
+          value={q}
+          onChange={(event) => setQ(event.target.value)}
+          placeholder="Title, artist, tag, or gallery code"
+          aria-label="Search discover"
+          className="h-12 w-full rounded-2xl border border-border bg-surface py-2 pl-11 pr-11 text-[16px] text-text outline-none transition placeholder:text-text-muted focus:border-primary md:h-11 md:text-[14px]"
+        />
+        {q && (
+          <button
+            type="button"
+            onClick={() => setQ("")}
+            className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-text-muted"
+            aria-label="Clear search"
+          >
+            <Icon name="x" size={15} />
+          </button>
+        )}
       </div>
 
-      <div className="flex flex-col gap-3">
-        <div className="text-[12px] font-semibold uppercase tracking-[0.04em] text-text-muted">
-          Local matches
+      <section className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="text-[20px] font-bold tracking-[-0.03em] md:text-[22px]">On your shelves</h2>
+          {local.length > 0 && <span className="text-[11px] text-text-muted">{local.length} matches</span>}
         </div>
         {loading ? (
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
             {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-[78px] w-[260px]" />
+              <Skeleton key={index} className="h-[86px] w-full rounded-[18px]" />
             ))}
           </div>
         ) : !debounced.trim() ? (
-          <div className="rounded-lg border border-border bg-surface px-5 py-4 text-[13px] text-text-secondary">
-            Start typing to search your library. Local search works fully offline.
+          <div className="rounded-[22px] border border-border/80 bg-surface px-4 py-5 text-[13px] leading-relaxed text-text-secondary">
+            Start typing to search your library. Everything stays on this device.
           </div>
         ) : local.length === 0 ? (
           <EmptyState
@@ -189,67 +204,67 @@ export default function Discover() {
             description="Try another title, artist, tag, or language."
           />
         ) : (
-          <div className="flex flex-wrap gap-3">
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-3">
             {local.map((gallery) => (
               <Link
                 key={gallery.id}
                 href={`/gallery/${gallery.id}`}
-                className="flex w-[260px] items-center gap-2.5 rounded-md border border-border bg-surface px-3 py-2.5 transition hover:border-primary"
+                className="flex items-center gap-2.5 rounded-[18px] border border-border/80 bg-surface p-2 transition hover:border-border-strong"
               >
-                <div className="h-[70px] w-[54px] shrink-0 overflow-hidden rounded-md bg-primary-soft">
+                <div className="h-[62px] w-[46px] shrink-0 overflow-hidden rounded-xl bg-primary-soft">
                   {gallery.cover_url && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={gallery.cover_url} alt="" className="h-full w-full object-cover" />
                   )}
                 </div>
                 <div className="min-w-0">
-                  <div className="line-clamp-2 text-[13px] font-semibold text-text">{gallery.title}</div>
-                  <div className="text-[11px] text-text-secondary">{gallery.page_count} pages</div>
+                  <div className="line-clamp-2 text-[12px] font-semibold leading-snug text-text">
+                    {gallery.title}
+                  </div>
+                  <div className="mt-1 text-[10px] text-text-muted">{gallery.page_count} pages</div>
                 </div>
               </Link>
             ))}
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="flex flex-col gap-3">
-        <div className="text-[12px] font-semibold uppercase tracking-[0.04em] text-text-muted">
-          nhentai results
+      <section className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="text-[20px] font-bold tracking-[-0.03em] md:text-[22px]">nhentai</h2>
+          <span className="text-[11px] text-text-muted">Optional</span>
         </div>
         {remoteLoading ? (
-          <div className="flex flex-wrap gap-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
             {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-[340px] w-[240px]" />
+              <Skeleton key={index} className="aspect-[3/4] w-full rounded-[18px]" />
             ))}
           </div>
         ) : !debounced.trim() ? (
-          <div className="rounded-lg border border-border bg-surface px-5 py-4 text-[13px] text-text-secondary">
-            Search nhentai to preview and import galleries with one click.
+          <div className="rounded-[22px] border border-border/80 bg-surface px-4 py-5 text-[13px] leading-relaxed text-text-secondary">
+            Search a title or gallery code to preview remote results and import in one tap.
           </div>
         ) : remote.length === 0 ? (
-          <div className="rounded-lg border border-border bg-surface px-5 py-4 text-[13px] text-text-secondary">
-            No remote results.
+          <div className="rounded-[22px] border border-border/80 bg-surface px-4 py-5 text-[13px] text-text-secondary">
+            No remote results for this search.
           </div>
         ) : (
-          <div className="flex flex-wrap gap-4">
-            {remote.map((item: RemoteItem) => {
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
+            {remote.map((item) => {
               const state = importStates[item.id];
               const isDone = state?.status === "completed";
               const isFailed = state?.status === "failed";
-              const isActive =
-                state?.status === "queued" || state?.status === "running";
+              const isActive = state?.status === "queued" || state?.status === "running";
               const busy = importingId === item.id || isActive;
               return (
-                <div
+                <article
                   key={item.id}
-                  className={`flex w-[240px] flex-col overflow-hidden rounded-lg border bg-surface transition ${
+                  className={`flex flex-col overflow-hidden rounded-[18px] border bg-surface transition ${
                     isDone
-                      ? "border-success/40"
+                      ? "border-success/35"
                       : isFailed
-                      ? "border-danger/40"
-                      : isActive
-                      ? "border-primary/40"
-                      : "border-border hover:border-primary"
+                      ? "border-danger/35"
+                      : "border-border/80"
                   }`}
                 >
                   <Link
@@ -265,31 +280,31 @@ export default function Discover() {
                           src={item.cover_url || item.thumbnail_url || ""}
                           alt=""
                           loading="lazy"
-                          className="h-full w-full object-cover transition group-hover:scale-105"
+                          className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                         />
                       )}
                       {item.page_count ? (
-                        <span className="absolute bottom-2 right-2 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-text">
+                        <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/45 px-1.5 py-0.5 text-[9px] font-semibold text-white backdrop-blur-sm">
                           {item.page_count} pages
                         </span>
                       ) : null}
                     </div>
                   </Link>
-                  <div className="flex flex-1 flex-col gap-2 px-3 py-3">
-                    <div className="line-clamp-2 text-[13px] font-semibold text-text" title={item.title}>
+                  <div className="flex flex-1 flex-col gap-2 p-2.5">
+                    <div className="line-clamp-2 text-[11px] font-semibold leading-snug text-text" title={item.title}>
                       {item.title}
                     </div>
-                    <div className="text-[11px] text-text-secondary">#{item.id}</div>
                     {isDone ? (
-                      <div className="mt-auto flex items-center gap-1 text-[12px] font-semibold text-success">
-                        <Icon name="check" size={13} /> Imported
+                      <div className="mt-auto flex items-center gap-1 text-[10px] font-semibold text-success">
+                        <Icon name="check" size={12} /> Imported
                       </div>
                     ) : isFailed ? (
-                      <div className="mt-auto flex items-center gap-1 text-[12px] font-semibold text-danger">
-                        <Icon name="alert" size={13} /> Import failed
+                      <div className="mt-auto flex items-center gap-1 text-[10px] font-semibold text-danger">
+                        <Icon name="alert" size={12} /> Failed
                       </div>
                     ) : (
                       <button
+                        type="button"
                         disabled={busy}
                         onClick={async () => {
                           setImportingId(item.id);
@@ -301,85 +316,84 @@ export default function Discover() {
                               ...current,
                               [item.id]: { status: "queued", jobId: job.id },
                             }));
-                            setImportMessage(`Import queued: ${job.id.slice(0, 8)}. Track it on Imports.`);
+                            setImportMessage(`Import queued: ${job.id.slice(0, 8)}.`);
                           } catch (err) {
                             setImportMessage((err as Error).message);
                           } finally {
                             setImportingId(null);
                           }
                         }}
-                        className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-primary-hover disabled:opacity-50"
+                        className="mt-auto inline-flex min-h-8 items-center justify-center gap-1 rounded-full bg-primary-soft px-3 text-[10px] font-bold text-primary transition active:scale-[0.98] disabled:opacity-50"
                       >
-                        {busy && <Icon name="refresh" size={12} className="animate-spin" />}
+                        {busy && <Icon name="refresh" size={11} className="animate-spin" />}
                         {busy ? "Importing…" : "Import"}
                       </button>
                     )}
                   </div>
-                </div>
+                </article>
               );
             })}
           </div>
         )}
+
         {importMessage && (
-          <div className="text-[12px] text-text-muted">
-            {importMessage} <Link href="/imports" className="text-primary">View imports</Link>
+          <div className="text-[11px] text-text-muted">
+            {importMessage}{" "}
+            <Link href="/imports" className="font-semibold text-primary">
+              View imports
+            </Link>
           </div>
         )}
         {trackedSummary && (
           <div
-            className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-[12px] font-semibold ${
+            className={`flex items-center gap-2 rounded-[18px] border px-3.5 py-2.5 text-[11px] font-semibold ${
               trackedSummary.tone === "success"
-                ? "border-success/30 bg-success/5 text-success"
+                ? "border-success/25 bg-success/5 text-success"
                 : trackedSummary.tone === "error"
-                ? "border-danger/30 bg-danger/5 text-danger"
-                : "border-primary/30 bg-primary-soft text-primary"
+                ? "border-danger/25 bg-danger/5 text-danger"
+                : "border-primary/20 bg-primary-soft text-primary"
             }`}
             role="status"
             aria-live="polite"
           >
             {trackedSummary.tone === "success" ? (
-              <Icon name="check" size={15} />
+              <Icon name="check" size={14} />
             ) : trackedSummary.tone === "error" ? (
-              <Icon name="alert" size={15} />
+              <Icon name="alert" size={14} />
             ) : (
-              <Icon name="refresh" size={15} className="animate-spin" />
+              <Icon name="refresh" size={14} className="animate-spin" />
             )}
             {trackedSummary.text}
             <Link href="/imports" className="ml-auto shrink-0 underline">
-              View imports
+              View
             </Link>
           </div>
         )}
-      </div>
+      </section>
 
-      <div className="flex flex-col gap-3">
-        <div className="text-[12px] font-semibold uppercase tracking-[0.04em] text-text-muted">
-          Metadata sources
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
+      <section className="flex flex-col gap-3">
+        <h2 className="text-[20px] font-bold tracking-[-0.03em] md:text-[22px]">Metadata sources</h2>
+        <div className="grid gap-2.5 md:grid-cols-2">
           {sources.map((source) => (
-            <div
-              key={source.id}
-              className="rounded-lg border border-border bg-surface p-5"
-            >
-              <div className="flex items-center justify-between">
-                <div className="text-[15px] font-bold text-text">{source.name}</div>
+            <div key={source.id} className="rounded-[22px] border border-border/80 bg-surface p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[14px] font-bold tracking-[-0.02em] text-text">{source.name}</div>
                 <span
-                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                    source.enabled
-                      ? "bg-success/10 text-success"
-                      : "bg-border text-text-muted"
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${
+                    source.enabled ? "bg-success/10 text-success" : "bg-border/60 text-text-muted"
                   }`}
                 >
                   {source.enabled ? "Enabled" : "Disabled"}
                 </span>
               </div>
-              <div className="mt-2 text-[13px] text-text-secondary">{source.description}</div>
+              <div className="mt-1.5 text-[12px] leading-relaxed text-text-secondary">
+                {source.description}
+              </div>
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {(source.capabilities || []).map((capability: string) => (
                   <span
                     key={capability}
-                    className="rounded-full bg-primary-soft px-2 py-0.5 text-[11px] font-semibold text-primary"
+                    className="rounded-full bg-primary-soft px-2 py-0.5 text-[10px] font-semibold text-primary"
                   >
                     {capability}
                   </span>
@@ -388,7 +402,7 @@ export default function Discover() {
             </div>
           ))}
         </div>
-      </div>
+      </section>
     </>
   );
 }

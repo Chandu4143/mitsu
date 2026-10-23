@@ -3,12 +3,12 @@ import Sidebar from "@/components/Sidebar";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-bg">
-      <Suspense fallback={<div className="w-[240px] shrink-0 bg-surface border-r border-border" />}>
+    <div className="min-h-dvh">
+      <Suspense fallback={null}>
         <Sidebar />
       </Suspense>
-      <main className="flex-1 px-4 py-6 md:px-10 md:py-8 flex flex-col gap-8 overflow-auto">
-        {children}
+      <main className="mx-auto w-full max-w-[1500px] px-4 pb-28 pt-[calc(3.75rem+env(safe-area-inset-top))] md:py-9 md:pb-12 md:pl-[296px] md:pr-10">
+        <div className="page-enter flex flex-col gap-7 md:gap-9">{children}</div>
       </main>
     </div>
   );

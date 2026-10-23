@@ -33,7 +33,9 @@ export default function CollectionDetail() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const remove = async (galleryId: string) => {
@@ -67,10 +69,11 @@ export default function CollectionDetail() {
   if (loading) {
     return (
       <div className="flex flex-col gap-4">
-        <Skeleton className="h-10 w-1/3" />
-        <div className="flex flex-wrap gap-4">
+        <Skeleton className="h-9 w-36 rounded-full" />
+        <Skeleton className="h-10 w-2/3" />
+        <div className="flex flex-col gap-3">
           {Array.from({ length: 4 }).map((_, index) => (
-            <Skeleton key={index} className="h-[370px] w-[220px]" />
+            <Skeleton key={index} className="h-[112px] w-full rounded-[20px]" />
           ))}
         </div>
       </div>
@@ -83,47 +86,68 @@ export default function CollectionDetail() {
 
   return (
     <>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex items-center gap-2">
+        <Link
+          href="/collections"
+          className="inline-flex min-h-10 items-center gap-1.5 rounded-full text-[13px] font-semibold text-text-secondary transition hover:text-text"
+        >
+          <Icon name="arrow-left" size={16} />
+          Collections
+        </Link>
+      </div>
+
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h1 className="text-[32px] font-extrabold tracking-[-0.02em] text-text">{collection.name}</h1>
+          <h1 className="text-[32px] font-extrabold leading-[1.05] tracking-[-0.045em] text-text md:text-[40px]">
+            {collection.name}
+          </h1>
           {collection.description && (
-            <p className="text-[13px] text-text-secondary">{collection.description}</p>
+            <p className="mt-2 max-w-[52ch] text-[13px] leading-relaxed text-text-secondary">
+              {collection.description}
+            </p>
           )}
-          <p className="text-[12px] text-text-muted">{galleries.length} galleries</p>
+          <p className="mt-2 text-[12px] text-text-muted">
+            {galleries.length} {galleries.length === 1 ? "gallery" : "galleries"}
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={openPicker}>
-            <Icon name="plus" size={15} /> Add galleries
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" onClick={openPicker} className="flex-1 md:flex-none">
+            <Icon name="plus" size={15} />
+            Add galleries
           </Button>
-          <Button
-            variant="ghost"
+          <button
+            type="button"
             onClick={async () => {
               const next = prompt("Collection name", collection.name);
               if (!next || next.trim() === collection.name) return;
               await api.patchCollection(collection.id, { name: next.trim() });
               await load();
             }}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-text-secondary transition hover:text-text"
+            aria-label="Rename collection"
           >
-            <Icon name="edit" size={15} /> Rename
-          </Button>
-          <Button
-            variant="danger"
+            <Icon name="edit" size={17} />
+          </button>
+          <button
+            type="button"
             onClick={async () => {
               if (!confirm("Delete this collection? Galleries remain in your library.")) return;
               await api.deleteCollection(collection.id);
               router.push("/collections");
             }}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-text-secondary transition hover:border-danger/30 hover:text-danger"
+            aria-label="Delete collection"
           >
-            <Icon name="trash" size={15} /> Delete
-          </Button>
+            <Icon name="trash" size={17} />
+          </button>
         </div>
-      </div>
+      </header>
 
       {galleries.length === 0 ? (
         <EmptyState
           icon="collections"
-          title="No galleries in this collection"
-          description="Add galleries from your library to start organizing this collection."
+          title="This collection is empty"
+          description="Add galleries from your library to start shaping this list."
           action={
             <Button variant="soft" onClick={openPicker}>
               Add galleries
@@ -131,48 +155,61 @@ export default function CollectionDetail() {
           }
         />
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-2.5">
           {galleries.map((gallery, index) => (
             <div
               key={gallery.id}
-              className="flex items-center gap-4 rounded-lg border border-border bg-surface p-3"
+              className="flex items-center gap-3 rounded-[20px] border border-border/80 bg-surface p-2.5 pr-2 transition hover:border-border-strong"
             >
+              <span className="hidden w-5 shrink-0 text-center text-[11px] font-semibold tabular-nums text-text-muted sm:block">
+                {index + 1}
+              </span>
               <Link href={`/gallery/${gallery.id}`} className="shrink-0">
-                <div className="h-[104px] w-[78px] shrink-0 overflow-hidden rounded-md bg-primary-soft" style={{ width: 78 }}>
-                  {gallery.cover_url && (
+                <div className="h-[88px] w-[66px] overflow-hidden rounded-[14px] bg-primary-soft">
+                  {gallery.cover_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={gallery.cover_url} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-primary">
+                      <Icon name="image" size={18} />
+                    </div>
                   )}
                 </div>
               </Link>
               <div className="min-w-0 flex-1">
-                <Link href={`/gallery/${gallery.id}`} className="line-clamp-1 text-[15px] font-bold text-text">
+                <Link
+                  href={`/gallery/${gallery.id}`}
+                  className="line-clamp-2 text-[14px] font-semibold leading-snug text-text"
+                >
                   {gallery.title}
                 </Link>
-                <div className="mt-1 text-[12px] text-text-secondary">
+                <div className="mt-1 text-[11px] text-text-muted">
                   {gallery.page_count} pages · {gallery.reading_status}
                 </div>
               </div>
-              <div className="flex shrink-0 gap-1">
+              <div className="flex shrink-0 items-center gap-0.5">
                 <button
+                  type="button"
                   onClick={() => move(index, -1)}
                   disabled={index === 0}
-                  className="rounded-md p-1.5 text-text-muted hover:bg-primary-soft hover:text-primary disabled:opacity-30"
+                  className="flex h-9 w-8 items-center justify-center rounded-full text-text-muted transition hover:bg-surface-soft hover:text-text disabled:opacity-25"
                   aria-label="Move up"
                 >
                   <Icon name="chevron-up" size={16} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => move(index, 1)}
                   disabled={index === galleries.length - 1}
-                  className="rounded-md p-1.5 text-text-muted hover:bg-primary-soft hover:text-primary disabled:opacity-30"
+                  className="flex h-9 w-8 items-center justify-center rounded-full text-text-muted transition hover:bg-surface-soft hover:text-text disabled:opacity-25"
                   aria-label="Move down"
                 >
                   <Icon name="chevron-down" size={16} />
                 </button>
                 <button
+                  type="button"
                   onClick={() => remove(gallery.id)}
-                  className="rounded-md p-1.5 text-text-muted hover:bg-danger/10 hover:text-danger"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition hover:bg-danger/10 hover:text-danger"
                   aria-label="Remove from collection"
                 >
                   <Icon name="trash" size={15} />
@@ -185,32 +222,40 @@ export default function CollectionDetail() {
 
       {pickerOpen && (
         <Modal title="Add galleries" onClose={() => setPickerOpen(false)} wide>
-          <div className="flex max-h-[60vh] flex-col gap-3 overflow-auto">
-            {allGalleries.map((gallery) => (
-              <label
-                key={gallery.id}
-                className="flex items-center gap-3 rounded-md border border-border bg-surface p-2"
-              >
-                <input
-                  type="checkbox"
-                  checked={selected.includes(gallery.id)}
-                  onChange={(event) => {
-                    if (event.target.checked) setSelected([...selected, gallery.id]);
-                    else setSelected(selected.filter((id) => id !== gallery.id));
-                  }}
-                />
-                <div className="h-[60px] w-[45px] shrink-0 overflow-hidden rounded bg-primary-soft">
-                  {gallery.cover_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={gallery.cover_url} alt="" className="h-full w-full object-cover" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="line-clamp-1 text-[13px] font-semibold text-text">{gallery.title}</div>
-                  <div className="text-[11px] text-text-secondary">{gallery.page_count} pages</div>
-                </div>
-              </label>
-            ))}
+          <div className="flex max-h-[58dvh] flex-col gap-2 overflow-auto">
+            {allGalleries.map((gallery) => {
+              const checked = selected.includes(gallery.id);
+              return (
+                <label
+                  key={gallery.id}
+                  className={`flex min-h-16 items-center gap-3 rounded-2xl border px-3 py-2 transition ${
+                    checked ? "border-primary/30 bg-primary-soft/50" : "border-border bg-surface"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(event) => {
+                      if (event.target.checked) setSelected([...selected, gallery.id]);
+                      else setSelected(selected.filter((gid) => gid !== gallery.id));
+                    }}
+                    className="h-4 w-4 accent-[var(--color-primary)]"
+                  />
+                  <div className="h-[56px] w-[42px] shrink-0 overflow-hidden rounded-lg bg-primary-soft">
+                    {gallery.cover_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={gallery.cover_url} alt="" className="h-full w-full object-cover" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="line-clamp-1 text-[13px] font-semibold text-text">
+                      {gallery.title}
+                    </div>
+                    <div className="text-[11px] text-text-muted">{gallery.page_count} pages</div>
+                  </div>
+                </label>
+              );
+            })}
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setPickerOpen(false)}>
