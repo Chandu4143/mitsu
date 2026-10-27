@@ -1,0 +1,28 @@
+services:
+  mitsu:
+    build: .
+    image: mitsu:latest
+    container_name: mitsu
+    ports:
+      - "3000:3000"
+    environment:
+      MITSU_DATA_DIR: /app/data
+      MITSU_LIBRARY_ROOT: /app/data/library
+      MITSU_FRONTEND_HOST: 0.0.0.0
+    volumes:
+      # The only stateful directory: database, covers, cache, and the managed
+      # library. Keep it on the host so upgrades never touch your collection.
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3000', timeout=3)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s

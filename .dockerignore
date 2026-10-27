@@ -1,18 +1,25 @@
 # Keep the build context lean; everything here is regenerated or local-only.
 .git
+.github
+.venv
 node_modules
 .next
 data
-dev-err.log
-dev-out.log
-mitsu-backend.log
+*.log
 tsconfig.tsbuildinfo
 
 # Python caches / virtualenvs
 backend/.venv
 backend/venv
 backend/.pytest_cache
+__pycache__
 **/__pycache__
+
+# Local configuration and captures, not needed at runtime
+backend/.env
+.env
+.DS_Store
+public/screenshots
 
 # Design reference assets, not needed at runtime
 public/UI-inspo

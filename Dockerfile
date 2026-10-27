@@ -1,12 +1,13 @@
 # Dockerfile for Mitsu.
 # Produces a single image that serves the FastAPI backend (:8000) and the
-# Next.js frontend (:3000) via the repo's `python run.py` orchestrator.
+# production Next.js frontend (:3000) via the repo's `python run.py --prod`
+# orchestrator.
 #
 # Build:  docker build -t mitsu .
-# Run:    docker run -p 3000:3000 -p 8000:8000 -v ./data:/app/data mitsu
+# Run:    docker run -p 3000:3000 -v ./data:/app/data mitsu
 #
-# The SQLite DB, thumbnails and imported galleries live under /app/data, so a
-# host volume keeps your collection across container upgrades.
+# The SQLite DB, covers and imported galleries live under /app/data, so a host
+# volume keeps your collection across container upgrades.
 
 # ---- Backend dependencies (also primes pip for the runtime stage) ----
 FROM python:3.12-slim AS backend
@@ -56,7 +57,12 @@ COPY public ./public
 # Writable data dir for the SQLite DB + library (mount a host volume here).
 RUN mkdir -p /app/data
 
+ENV MITSU_DATA_DIR=/app/data \
+    MITSU_LIBRARY_ROOT=/app/data/library \
+    MITSU_FRONTEND_HOST=0.0.0.0 \
+    NODE_ENV=production
+
 EXPOSE 3000 8000
 
-# run.py already gates on Python deps and starts both servers.
-CMD ["python", "run.py"]
+# run.py gates on Python deps and starts both servers in production mode.
+CMD ["python", "run.py", "--prod", "--no-browser"]

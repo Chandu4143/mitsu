@@ -22,15 +22,59 @@
 
 Mitsu is a **local-first** manga library and reader. It runs entirely on your own machine — no accounts, no cloud, no telemetry. Import CBZ, ZIP, image folders, or remote galleries, read them in a focused reader, and keep your collection organised in collections and reading lists. The interface is mobile-first, with an iOS-style navigation shell, and works just as well on a desktop browser.
 
+## Download
+
+Every tagged release ships two ways to install:
+
+- **Source archive** — `mitsu-<version>.zip` from the [releases page](https://github.com/Chandu4143/mitsu/releases), with a `.sha256` checksum next to it.
+- **Container image** — `ghcr.io/chandu4143/mitsu:<version>` for `linux/amd64` and `linux/arm64` (also tagged `latest`).
+
+### Run the archive
+
+Extract the zip anywhere, then install once and start:
+
+**Windows**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install.ps1 -Build
+.venv\Scripts\python.exe run.py --prod
+```
+
+**macOS / Linux**
+
+```bash
+bash scripts/install.sh --build
+.venv/bin/python run.py --prod
+```
+
+Open <http://127.0.0.1:3000>. The installer needs Python 3.11+, Node.js 20+, and pnpm (enabled through corepack when available).
+
+### Run the container
+
+```bash
+docker run --rm -p 3000:3000 -v mitsu-data:/app/data ghcr.io/chandu4143/mitsu:latest
+```
+
+Open <http://127.0.0.1:3000>. The named volume holds your database, covers, and imported galleries, so updating the image never touches your collection.
+
+To verify a download before running it:
+
+```bash
+sha256sum -c mitsu-1.1.0.zip.sha256
+```
+
+
 ## What's inside
 
 - **Mobile-first shell** — fixed translucent top bar, five-item bottom tab bar, “More” bottom sheet, and a desktop rail from the same component tree.
-- **Reader** — single-page and continuous scroll, RTL and LTR, fit-to-width or fit-to-screen, adjustable backgrounds, fullscreen, keyboard navigation, and progress that is saved automatically.
-- **Library** — search, filters, sorting, grid and list views, favorites, and reading status.
+- **Reader** — single-page, double-page spread, and continuous scroll; RTL and LTR; fit-to-width or fit-to-screen; zoom and pan (wheel, pinch, or keys); adjustable backgrounds; fullscreen; keyboard shortcuts; bookmarks with notes; and progress that is saved automatically.
+- **Library** — search, filters, sorting, grid and list views, favorites, reading status, and a history view grouped by day.
 - **Collections** — group galleries, reorder items, and jump back into reading.
 - **Imports** — CBZ, ZIP, image folders, and library roots with live job progress, retry, and cancellation.
-- **Discover** — local metadata sources and optional remote search.
-- **Settings** — grouped preferences, library roots, and a live overview of your collection.
+- **Discover** — local metadata sources, filename cleanup, and one-click apply on any gallery.
+- **Settings** — grouped preferences, appearance (light/dark/system), cover rebuilds, duplicate detection, and portable backup and restore.
+- **Installable** — a web app manifest and service worker cache the shell and the pages you have already read. Dark mode follows your device or your choice.
+- **Local-first** — no accounts, no cloud, no telemetry; the server binds to `127.0.0.1` by default.
 
 ## Screenshots
 
@@ -70,13 +114,33 @@ Mitsu is a **local-first** manga library and reader. It runs entirely on your ow
 
 - Python 3.11 or newer
 - Node.js 20 or newer
-- pnpm
+- pnpm (the installer enables it through corepack when needed)
 - Google Chrome (only for regenerating screenshots)
 
 ### Install
 
+One command sets up a local virtual environment and the frontend packages.
+
+**Windows**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/install.ps1
+```
+
+**macOS / Linux**
+
 ```bash
-git clone https://github.com/your-user/mitsu.git
+bash scripts/install.sh
+```
+
+Add `--build` (or `-Build` on Windows) to create the production frontend build as
+well.
+
+<details>
+<summary>Manual install</summary>
+
+```bash
+git clone https://github.com/Chandu4143/mitsu.git
 cd mitsu
 python -m venv .venv
 # Windows
@@ -87,18 +151,40 @@ pip install -r backend/requirements.txt
 pnpm install
 ```
 
+</details>
+
 ### Run
 
 ```bash
 python run.py
 ```
 
-Then open:
+`run.py` starts both services together, waits for the frontend, and opens your
+browser. Press `Ctrl+C` to stop everything.
+
+Then:
 
 - Frontend: <http://127.0.0.1:3000>
 - Backend API: <http://127.0.0.1:8000>
 
-`run.py` starts both services and shuts them down together. Press `Ctrl+C` to stop.
+For the production build:
+
+```bash
+pnpm build
+python run.py --prod
+```
+
+Use `--no-browser` if you would rather open the app yourself.
+
+### Docker
+
+```bash
+docker compose up --build
+```
+
+Open <http://127.0.0.1:3000>. Compose bind-mounts `./data` into the container,
+so the database, covers, and managed library survive rebuilds. The container is
+self-contained; only port `3000` is published.
 
 ## Importing a library
 
@@ -124,6 +210,7 @@ Copy `.env.example` to `backend/.env` (or export the values in your shell). Ever
 | `MITSU_LIBRARY_ROOT` | `<data>/library` | Where imported galleries are stored |
 | `MITSU_HOST` | `127.0.0.1` | Backend bind address |
 | `MITSU_PORT` | `8000` | Backend port |
+| `MITSU_FRONTEND_HOST` | `127.0.0.1` | Frontend bind address (`0.0.0.0` to expose it on your network) |
 | `MITSU_FRONTEND_ORIGIN` | `http://localhost:3000` | Allowed CORS origin for the frontend |
 
 The frontend talks to the backend through a Next.js rewrite, so the browser only needs to reach port `3000`.
@@ -151,6 +238,7 @@ pnpm dev          # Next.js dev server
 pnpm lint         # ESLint
 pnpm typecheck    # TypeScript without emitting
 pnpm build        # Production build
+pnpm package      # dist/mitsu-<version>.zip + SHA-256 checksum
 pnpm screenshots  # Regenerate README screenshots
 ```
 
@@ -163,16 +251,41 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 Screenshot capture expects Chrome at `C:/Program Files/Google/Chrome/Application/chrome.exe` and a running app. Override either with `CHROME_PATH` or `MITSU_SCREENSHOT_URL`. Screenshots are written to `public/screenshots/`.
 
+## Releasing
+
+1. Set the same version in `package.json`, `backend/app/main.py`, and `backend/app/services/maintenance.py`, and add a `CHANGELOG.md` entry.
+2. Run `pnpm package` and check `dist/mitsu-<version>.zip` plus its `.sha256`.
+3. Tag and push:
+
+   ```bash
+   git tag v1.1.0
+   git push origin v1.1.0
+   ```
+
+The release workflow verifies that the tag matches `package.json`, pushes a
+multi-arch image to `ghcr.io/chandu4143/mitsu`, and attaches the archive and
+checksum to the GitHub release.
+
 ## Data and backups
 
 Everything lives under `data/`:
 
-- `data/database/mitsu.db` — gallery metadata, collections, jobs, and settings
-- `data/library/` — imported gallery copies
-- `data/thumbnails/` — generated covers (safe to delete; regenerated on demand)
+- `data/database/mitsu.db` — gallery metadata, collections, bookmarks, history, jobs, and settings
+- `data/library/` — imported gallery copies and generated covers
+- `data/thumbnails/` — generated thumbnails (safe to delete; regenerated on demand)
 - `data/cache/` — transient cache
 
-To back up your collection, copy `data/database/mitsu.db` and `data/library/`. Thumbnails and cache can be regenerated.
+**Settings → Backup & restore** exports a portable zip:
+
+- `manifest.json` — app version, timestamp, and gallery count
+- `database/mitsu.db` — a consistent SQLite snapshot taken with SQLite's backup API
+- `library/…` — your managed files, when “full backup” is chosen
+- `stats.json` — a human-readable library summary
+
+Restoring validates the zip and the database integrity first, then writes a
+timestamped safety copy of the current database (and library, when included)
+before replacing anything. You can also copy `data/` yourself at any time;
+thumbnails and cache are disposable.
 
 ## Troubleshooting
 
