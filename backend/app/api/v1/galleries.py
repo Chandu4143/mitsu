@@ -8,6 +8,9 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.models import Favorite, ReadingProgress
 from app.schemas.schemas import (
+    BookmarkIn,
+    BookmarkOut,
+    CoverIn,
     FavoriteIn,
     GalleryDetailOut,
     GalleryListOut,
@@ -126,6 +129,43 @@ def cover(gid: str, db: Session = Depends(get_db)):
         media_type=mime_for(path),
         headers={"Cache-Control": "public, max-age=86400"},
     )
+
+
+@router.put("/{gid}/cover", response_model=GalleryDetailOut)
+def set_cover(gid: str, body: CoverIn, db: Session = Depends(get_db)):
+    try:
+        detail = libsvc.set_cover_from_page(db, gid, body.page_index)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    if not detail:
+        raise HTTPException(404, "Gallery or page not found")
+    return detail
+
+
+@router.get("/{gid}/bookmarks", response_model=list[BookmarkOut])
+def get_bookmarks(gid: str, db: Session = Depends(get_db)):
+    gallery = libsvc.get_gallery(db, gid)
+    if not gallery:
+        raise HTTPException(404, "Gallery not found")
+    return libsvc.list_bookmarks(db, gid)
+
+
+@router.post("/{gid}/bookmarks", response_model=BookmarkOut, status_code=201)
+def create_bookmark(gid: str, body: BookmarkIn, db: Session = Depends(get_db)):
+    try:
+        bookmark = libsvc.add_bookmark(db, gid, body.page_index, body.note)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc))
+    if not bookmark:
+        raise HTTPException(404, "Gallery not found")
+    return bookmark
+
+
+@router.delete("/{gid}/bookmarks/{bookmark_id}", status_code=204)
+def remove_bookmark(gid: str, bookmark_id: str, db: Session = Depends(get_db)):
+    if not libsvc.delete_bookmark(db, gid, bookmark_id):
+        raise HTTPException(404, "Bookmark not found")
+    return None
 
 
 @router.get("/{gid}/progress", response_model=ProgressOut)

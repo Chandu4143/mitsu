@@ -1,9 +1,13 @@
+from datetime import datetime, timezone
 from pathlib import Path
+
+from PIL import Image
 from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session
 
 from app.models.models import (
     Artist,
+    Bookmark,
     Collection,
     Favorite,
     Gallery,
@@ -14,7 +18,9 @@ from app.models.models import (
     ReadingProgress,
     Tag,
 )
-from app.core.config import LIBRARY_ROOT
+from app.core.config import LIBRARY_ROOT, MAX_IMAGE_PIXELS
+
+Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 
 
 def resolve_library_path(relative_path: str) -> Path:
@@ -47,6 +53,7 @@ def to_gallery_out(g: Gallery):
         "reading_status": status,
         "current_page": current,
         "cover_url": f"/api/v1/galleries/{g.id}/cover" if g.cover_path else None,
+        "cover_page_index": g.cover_page_index,
         "date_added": g.date_added,
         "last_opened_at": g.last_opened_at,
         "file_size": g.file_size or 0,
@@ -231,6 +238,21 @@ def set_tags(db: Session, gid: str, tags: list[str]):
         db.add(GalleryTag(gallery_id=gid, tag_id=tag.id, source="user", is_user_override=True))
 
 
+def set_artists(db: Session, gid: str, artists: list[str]):
+    db.query(GalleryArtist).filter(GalleryArtist.gallery_id == gid).delete()
+    for raw in artists:
+        name = raw.strip()
+        if not name:
+            continue
+        norm = name.lower()
+        artist = db.query(Artist).filter(Artist.normalized_name == norm).first()
+        if not artist:
+            artist = Artist(name=name, normalized_name=norm)
+            db.add(artist)
+            db.flush()
+        db.add(GalleryArtist(gallery_id=gid, artist_id=artist.id, source="metadata"))
+
+
 def delete_gallery(db: Session, gid: str):
     g = get_gallery(db, gid)
     if not g:
@@ -240,20 +262,184 @@ def delete_gallery(db: Session, gid: str):
     return True
 
 
+def list_bookmarks(db: Session, gid: str):
+    return (
+        db.query(Bookmark)
+        .filter(Bookmark.gallery_id == gid)
+        .order_by(Bookmark.page_index.asc())
+        .all()
+    )
+
+
+def add_bookmark(db: Session, gid: str, page_index: int, note: str | None = None):
+    gallery = get_gallery(db, gid)
+    if not gallery:
+        return None
+    if page_index < 0 or page_index >= (gallery.page_count or 0):
+        raise ValueError("Page index out of range")
+    existing = (
+        db.query(Bookmark)
+        .filter(Bookmark.gallery_id == gid, Bookmark.page_index == page_index)
+        .first()
+    )
+    if existing:
+        existing.note = (note or "").strip() or None
+        db.commit()
+        db.refresh(existing)
+        return existing
+    bookmark = Bookmark(
+        gallery_id=gid,
+        page_index=page_index,
+        note=(note or "").strip() or None,
+    )
+    db.add(bookmark)
+    db.commit()
+    db.refresh(bookmark)
+    return bookmark
+
+
+def delete_bookmark(db: Session, gid: str, bookmark_id: str):
+    bookmark = (
+        db.query(Bookmark)
+        .filter(Bookmark.id == bookmark_id, Bookmark.gallery_id == gid)
+        .first()
+    )
+    if not bookmark:
+        return False
+    db.delete(bookmark)
+    db.commit()
+    return True
+
+
+def reading_history(db: Session, limit: int = 60):
+    rows = (
+        db.query(Gallery)
+        .filter(Gallery.last_opened_at.isnot(None))
+        .order_by(Gallery.last_opened_at.desc())
+        .limit(max(1, min(limit, 200)))
+        .all()
+    )
+    return [to_gallery_out(g) for g in rows]
+
+
+def _write_cover(source: Path, dest: Path) -> bool:
+    try:
+        with Image.open(source) as img:
+            img = img.convert("RGB")
+            width, height = img.size
+            target_width = min(560, width)
+            if target_width < width:
+                target_height = max(1, round(height * target_width / width))
+                img = img.resize((target_width, target_height), Image.LANCZOS)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            img.save(dest, "JPEG", quality=86, optimize=True)
+        return True
+    except Exception:
+        return False
+
+
+def cover_destination(gallery: Gallery) -> Path:
+    base = (LIBRARY_ROOT / (gallery.relative_path or gallery.id)).resolve()
+    root = LIBRARY_ROOT.resolve()
+    if base != root and root not in base.parents:
+        base = root
+    return base / "_cover.jpg"
+
+
+def set_cover_from_page(db: Session, gid: str, page_index: int):
+    gallery = get_gallery(db, gid)
+    if not gallery:
+        return None
+    if page_index < 0 or page_index >= (gallery.page_count or 0):
+        raise ValueError("Page index out of range")
+    page = (
+        db.query(GalleryPage)
+        .filter(GalleryPage.gallery_id == gid, GalleryPage.page_index == page_index)
+        .first()
+    )
+    if not page:
+        return None
+    try:
+        source = resolve_library_path(page.relative_path)
+    except ValueError:
+        return None
+    if not source.exists():
+        return None
+    dest = cover_destination(gallery)
+    if not _write_cover(source, dest):
+        return None
+    gallery.cover_path = dest.relative_to(LIBRARY_ROOT.resolve()).as_posix()
+    gallery.cover_page_index = page_index
+    gallery.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(gallery)
+    return get_gallery_detail(db, gid)
+
+
+def regenerate_cover(db: Session, gallery: Gallery) -> bool:
+    """Rebuild a gallery cover from its preferred or first readable page."""
+    indexes = []
+    if gallery.cover_page_index is not None:
+        indexes.append(gallery.cover_page_index)
+    indexes.append(0)
+    for index in indexes:
+        page = (
+            db.query(GalleryPage)
+            .filter(GalleryPage.gallery_id == gallery.id, GalleryPage.page_index == index)
+            .first()
+        )
+        if not page:
+            continue
+        try:
+            source = resolve_library_path(page.relative_path)
+        except ValueError:
+            continue
+        if not source.exists():
+            continue
+        dest = cover_destination(gallery)
+        if _write_cover(source, dest):
+            gallery.cover_path = dest.relative_to(LIBRARY_ROOT.resolve()).as_posix()
+            gallery.updated_at = datetime.now(timezone.utc)
+            return True
+    return False
+
+
 def stats(db: Session):
     galleries = db.query(func.count(Gallery.id)).scalar() or 0
     pages = db.query(func.coalesce(func.sum(Gallery.page_count), 0)).scalar() or 0
     favorites = db.query(func.count(Favorite.gallery_id)).scalar() or 0
     collections = db.query(func.count(Collection.id)).scalar() or 0
+    bookmarks = db.query(func.count(Bookmark.id)).scalar() or 0
     size = db.query(func.coalesce(func.sum(Gallery.file_size), 0)).scalar() or 0
     from app.models.models import LibraryRoot
 
     roots = db.query(func.count(LibraryRoot.id)).scalar() or 0
+
+    def status_count(status: str) -> int:
+        return (
+            db.query(func.count(ReadingProgress.gallery_id))
+            .filter(ReadingProgress.status == status)
+            .scalar()
+            or 0
+        )
+
+    reading = status_count("reading")
+    completed = status_count("completed")
+    tracked = (
+        db.query(func.count(ReadingProgress.gallery_id))
+        .filter(ReadingProgress.status.in_(("reading", "completed")))
+        .scalar()
+        or 0
+    )
     return {
         "galleries": galleries,
         "pages": pages,
         "favorites": favorites,
         "collections": collections,
+        "bookmarks": bookmarks,
+        "reading": reading,
+        "completed": completed,
+        "unread": max(0, galleries - tracked),
         "bytes": size,
         "roots": roots,
     }

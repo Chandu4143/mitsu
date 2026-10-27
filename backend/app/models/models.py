@@ -40,6 +40,7 @@ class Gallery(Base):
     language = Column(String, default="unknown")
     page_count = Column(Integer, default=0)
     cover_path = Column(String, nullable=True)
+    cover_page_index = Column(Integer, nullable=True)
     source_id = Column(String, nullable=True)
     external_id = Column(String, nullable=True)
     file_size = Column(Integer, default=0)
@@ -58,6 +59,12 @@ class Gallery(Base):
     artists = relationship("GalleryArtist", back_populates="gallery", cascade="all, delete-orphan")
     progress = relationship("ReadingProgress", back_populates="gallery", uselist=False, cascade="all, delete-orphan")
     favorites = relationship("Favorite", back_populates="gallery", uselist=False, cascade="all, delete-orphan")
+    bookmarks = relationship(
+        "Bookmark",
+        back_populates="gallery",
+        cascade="all, delete-orphan",
+        order_by="Bookmark.page_index",
+    )
 
 
 class GalleryPage(Base):
@@ -123,6 +130,17 @@ class Favorite(Base):
     gallery_id = Column(String, ForeignKey("galleries.id"), primary_key=True)
     created_at = Column(DateTime, default=now)
     gallery = relationship("Gallery", back_populates="favorites")
+
+
+class Bookmark(Base):
+    __tablename__ = "bookmarks"
+    id = Column(String, primary_key=True, default=uid)
+    gallery_id = Column(String, ForeignKey("galleries.id"), nullable=False)
+    page_index = Column(Integer, nullable=False)
+    note = Column(String, nullable=True)
+    created_at = Column(DateTime, default=now)
+    gallery = relationship("Gallery", back_populates="bookmarks")
+    __table_args__ = (UniqueConstraint("gallery_id", "page_index"),)
 
 
 class Collection(Base):

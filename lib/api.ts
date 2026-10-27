@@ -8,6 +8,7 @@ export type Gallery = {
   reading_status: "unread" | "reading" | "completed";
   current_page: number;
   cover_url?: string | null;
+  cover_page_index?: number | null;
   date_added?: string | null;
   last_opened_at?: string | null;
   file_size: number;
@@ -79,6 +80,10 @@ export type Stats = {
   pages: number;
   favorites: number;
   collections: number;
+  bookmarks: number;
+  reading: number;
+  completed: number;
+  unread: number;
   bytes: number;
   roots: number;
 };
@@ -86,6 +91,53 @@ export type Stats = {
 export type Settings = {
   preferences: Record<string, string>;
   paths: Record<string, string>;
+  stats: Stats;
+};
+
+export type Bookmark = {
+  id: string;
+  gallery_id: string;
+  page_index: number;
+  note?: string | null;
+  created_at?: string | null;
+};
+
+export type BackupInfo = {
+  version: string;
+  database_bytes: number;
+  library_bytes: number;
+  library_path: string;
+  backup_bytes: number;
+  library_available: boolean;
+  stats: Stats;
+};
+
+export type DuplicateGroup = {
+  content_hash: string;
+  count: number;
+  items: Gallery[];
+};
+
+export type MetadataCandidate = {
+  id: string;
+  gallery_id: string;
+  source_id: string;
+  fetched_at?: string | null;
+  applied: boolean;
+  candidate: {
+    title?: string | null;
+    alternate_title?: string | null;
+    language?: string | null;
+    tags?: string[];
+    artists?: string[];
+  };
+};
+
+export type RestoreResult = {
+  restored: boolean;
+  restored_library: boolean;
+  safety_database?: string | null;
+  library_backup?: string | null;
   stats: Stats;
 };
 
@@ -208,6 +260,23 @@ export const api = {
   removeFavorite: (id: string) =>
     req<null>(`/galleries/${id}/favorite`, { method: "DELETE" }),
 
+  getBookmarks: (id: string) => req<Bookmark[]>(`/galleries/${id}/bookmarks`),
+  addBookmark: (id: string, pageIndex: number, note?: string) =>
+    req<Bookmark>(`/galleries/${id}/bookmarks`, {
+      method: "POST",
+      body: JSON.stringify({ page_index: pageIndex, note }),
+    }),
+  removeBookmark: (id: string, bookmarkId: string) =>
+    req<null>(`/galleries/${id}/bookmarks/${bookmarkId}`, { method: "DELETE" }),
+  setCover: (id: string, pageIndex: number) =>
+    req<GalleryDetail>(`/galleries/${id}/cover`, {
+      method: "PUT",
+      body: JSON.stringify({ page_index: pageIndex }),
+    }),
+
+  getHistory: (limit = 60) =>
+    req<Gallery[]>(`/history?limit=${limit}`),
+
   listCollections: () => req<Collection[]>("/collections"),
   getCollection: (id: string) => req<Collection>(`/collections/${id}`),
   createCollection: (name: string, description?: string) =>
@@ -264,7 +333,7 @@ export const api = {
   listMetadataSources: () =>
     req<MetadataSource[]>("/metadata/sources"),
   lookupMetadata: (galleryId: string, sourceId = "local") =>
-    req<MetadataRecord[]>(`/galleries/${galleryId}/metadata/lookup`, {
+    req<MetadataCandidate>(`/galleries/${galleryId}/metadata/lookup`, {
       method: "POST",
       body: JSON.stringify({ source_id: sourceId }),
     }),
@@ -273,10 +342,44 @@ export const api = {
     recordId: string,
     fields: string[] = []
   ) =>
-    req<GalleryDetail>(`/galleries/${galleryId}/metadata/apply`, {
-      method: "POST",
-      body: JSON.stringify({ record_id: recordId, fields }),
-    }),
+    req<{ applied: boolean; record_id: string; fields: string[] }>(
+      `/galleries/${galleryId}/metadata/apply`,
+      {
+        method: "POST",
+        body: JSON.stringify({ record_id: recordId, fields }),
+      }
+    ),
+
+  listJobs: (type?: string) =>
+    req<Job[]>(`/jobs${type ? `?type=${encodeURIComponent(type)}` : ""}`),
+  getBackupInfo: () => req<BackupInfo>("/backup/info"),
+  backupExportUrl: (includeLibrary = true) =>
+    `${BASE}/backup/export?include_library=${includeLibrary}`,
+  findDuplicates: () =>
+    req<{ groups: DuplicateGroup[]; total_groups: number }>(
+      "/maintenance/duplicates"
+    ),
+  regenerateThumbnails: () =>
+    req<Job>("/maintenance/thumbnails", { method: "POST" }),
+  async restoreBackup(file: File, includeLibrary = true): Promise<RestoreResult> {
+    const body = new FormData();
+    body.append("file", file);
+    const res = await fetch(
+      `${BASE}/backup/restore?include_library=${includeLibrary}`,
+      { method: "POST", body }
+    );
+    if (!res.ok) {
+      let message = res.statusText;
+      try {
+        const payload = (await res.json()) as { error?: { message?: string } };
+        message = payload?.error?.message || message;
+      } catch {
+        // ignore
+      }
+      throw new Error(message);
+    }
+    return (await res.json()) as RestoreResult;
+  },
 
   searchNhentai: (q: string, page = 1) =>
     req<RemoteSearchResponse>(

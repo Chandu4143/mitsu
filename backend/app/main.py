@@ -9,7 +9,7 @@ from app.db.session import SessionLocal, init_db
 from app.services.importer import ensure_default_root
 from app.services.jobs import reconcile_jobs
 
-app = FastAPI(title="Mitsu API", version="1.0.0")
+app = FastAPI(title="Mitsu API", version="1.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -62,6 +62,7 @@ from app.api.v1.imports import router as imports_router
 from app.api.v1.metadata import router as metadata_router
 from app.api.v1.providers import router as providers_router
 from app.api.v1.settings import router as settings_router
+from app.api.v1.system import router as system_router
 
 app.include_router(galleries_router, prefix=API_PREFIX)
 app.include_router(imports_router, prefix=API_PREFIX)
@@ -69,6 +70,7 @@ app.include_router(collections_router, prefix=API_PREFIX)
 app.include_router(metadata_router, prefix=API_PREFIX)
 app.include_router(providers_router, prefix=API_PREFIX)
 app.include_router(settings_router, prefix=API_PREFIX)
+app.include_router(system_router, prefix=API_PREFIX)
 
 
 @app.on_event("startup")

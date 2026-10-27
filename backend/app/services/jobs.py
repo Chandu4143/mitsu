@@ -61,8 +61,10 @@ def get_settings(db: Session) -> dict:
         "reading_direction": "ltr",
         "reader_background": "dark",
         "fit_mode": "width",
+        "reader_spread": "single",
         "library_view": "grid",
         "library_sort": "date_added",
+        "appearance": "system",
     }
     row = db.query(AppSetting).filter(AppSetting.key == "preferences").first()
     if not row or not row.value_json:
@@ -82,8 +84,10 @@ def save_settings(db: Session, values: dict) -> dict:
         "reading_direction",
         "reader_background",
         "fit_mode",
+        "reader_spread",
         "library_view",
         "library_sort",
+        "appearance",
     }
     current = get_settings(db)
     current.update({k: v for k, v in values.items() if k in allowed})

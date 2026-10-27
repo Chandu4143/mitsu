@@ -13,6 +13,7 @@ class GalleryOut(BaseModel):
     reading_status: str = "unread"
     current_page: int = 0
     cover_url: Optional[str] = None
+    cover_page_index: Optional[int] = None
     date_added: Optional[datetime] = None
     last_opened_at: Optional[datetime] = None
     file_size: int = 0
@@ -147,8 +148,31 @@ class StatsOut(BaseModel):
     pages: int
     favorites: int
     collections: int
+    bookmarks: int
+    reading: int
+    completed: int
+    unread: int
     bytes: int
     roots: int
+
+
+class BookmarkIn(BaseModel):
+    page_index: int = Field(ge=0)
+    note: Optional[str] = Field(default=None, max_length=500)
+
+
+class CoverIn(BaseModel):
+    page_index: int = Field(ge=0)
+
+
+class BookmarkOut(BaseModel):
+    id: str
+    gallery_id: str
+    page_index: int
+    note: Optional[str] = None
+    created_at: Optional[datetime] = None
+    class Config:
+        from_attributes = True
 
 
 class MetadataLookupIn(BaseModel):

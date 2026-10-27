@@ -18,8 +18,10 @@ class SettingsIn(BaseModel):
     reading_direction: str | None = None
     reader_background: str | None = None
     fit_mode: str | None = None
+    reader_spread: str | None = None
     library_view: str | None = None
     library_sort: str | None = None
+    appearance: str | None = None
 
 
 @router.get("/settings")
@@ -45,8 +47,10 @@ def update_settings(body: SettingsIn, db: Session = Depends(get_db)):
         "reading_direction": {"ltr", "rtl"},
         "reader_background": {"dark", "warm", "black"},
         "fit_mode": {"width", "screen"},
+        "reader_spread": {"single", "double"},
         "library_view": {"grid", "list"},
         "library_sort": {"date_added", "title", "last_opened", "page_count"},
+        "appearance": {"light", "dark", "system"},
     }
     for key, value in values.items():
         if key in allowed and value not in allowed[key]:

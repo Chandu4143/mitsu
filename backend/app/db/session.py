@@ -24,6 +24,7 @@ def _ensure_columns():
         "galleries": {
             "updated_at": "DATETIME",
             "metadata_json": "TEXT",
+            "cover_page_index": "INTEGER",
         },
         "jobs": {
             "payload_json": "TEXT",

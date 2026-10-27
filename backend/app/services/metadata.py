@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.models.models import MetadataRecord
-from app.services.library import get_gallery, set_tags
+from app.services.library import get_gallery, set_artists, set_tags
 
 
 def parse_local_title(title: str) -> dict:
@@ -73,6 +73,8 @@ def apply_record(db: Session, gid: str, record_id: str, fields: list[str] | None
         user_tags = [t for t in gallery.tags if t.is_user_override]
         if not user_tags:
             set_tags(db, gid, payload["tags"])
+    if "artists" in allowed and payload.get("artists"):
+        set_artists(db, gid, payload["artists"])
     record.applied = True
     gallery.updated_at = datetime.now(timezone.utc)
     db.commit()
