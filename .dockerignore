@@ -5,6 +5,7 @@
 node_modules
 .next
 data
+dist
 *.log
 tsconfig.tsbuildinfo
 

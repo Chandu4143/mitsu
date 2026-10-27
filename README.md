@@ -63,6 +63,7 @@ To verify a download before running it:
 sha256sum -c mitsu-1.1.0.zip.sha256
 ```
 
+On Windows: `Get-FileHash mitsu-1.1.0.zip -Algorithm SHA256`.
 
 ## What's inside
 

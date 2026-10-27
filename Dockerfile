@@ -13,7 +13,7 @@
 FROM python:3.12-slim AS backend
 WORKDIR /app
 COPY backend/requirements.txt ./backend/requirements.txt
-RUN pip install --no-cache-dir -r backend/requirements.txt
+RUN pip install --no-cache-dir --retries 5 --timeout 60 -r backend/requirements.txt
 COPY backend/ ./backend/
 COPY run.py ./
 
@@ -24,7 +24,7 @@ FROM node:20-bookworm-slim AS frontend
 WORKDIR /app
 COPY package.json pnpm-lock.yaml ./
 RUN corepack enable && corepack prepare pnpm@9.12.3 --activate \
- && pnpm install --frozen-lockfile
+ && pnpm install --frozen-lockfile --fetch-retries=5 --fetch-retry-maxtimeout=120000
 COPY . .
 RUN pnpm run build
 
