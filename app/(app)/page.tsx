@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, type Gallery } from "@/lib/api";
-import { Icon } from "@/components/Icon";
+import { api, type Gallery, type Stats } from "@/lib/api";
+import { Icon, type IconName } from "@/components/Icon";
 import { Button, EmptyState, Skeleton } from "@/components/ui";
 
 function ProgressBar({ value, wide }: { value: number; wide?: boolean }) {
@@ -69,21 +69,141 @@ function GalleryCard({ gallery }: { gallery: Gallery }) {
   );
 }
 
+function StatsStrip({ stats }: { stats: Stats }) {
+  const items: { label: string; value: number; href: string; icon: IconName }[] = [
+    { label: "Titles", value: stats.galleries, href: "/library", icon: "library" },
+    { label: "Reading", value: stats.reading, href: "/library?status=reading", icon: "play" },
+    {
+      label: "Finished",
+      value: stats.completed,
+      href: "/library?status=completed",
+      icon: "check",
+    },
+    { label: "Bookmarks", value: stats.bookmarks, href: "/history", icon: "bookmark" },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {items.map((item) => (
+        <Link
+          key={item.label}
+          href={item.href}
+          className="group flex items-center gap-3 rounded-[20px] border border-border/80 bg-surface px-3.5 py-3 transition hover:border-border-strong"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+            <Icon name={item.icon} size={15} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[18px] font-bold leading-none tracking-[-0.03em] text-text tabular-nums">
+              {item.value}
+            </span>
+            <span className="mt-1 block text-[11px] text-text-muted">{item.label}</span>
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function FirstRun() {
+  const steps: { icon: IconName; title: string; body: string }[] = [
+    {
+      icon: "upload",
+      title: "Bring your files",
+      body: "Import CBZ, ZIP, images, or a whole folder. Nothing leaves this machine.",
+    },
+    {
+      icon: "bookmark",
+      title: "Read your way",
+      body: "Single or double pages, right-to-left, zoom, bookmarks, and a place kept.",
+    },
+    {
+      icon: "download",
+      title: "Keep it safe",
+      body: "Export a portable backup whenever you like. Restore it on another machine.",
+    },
+  ];
+
+  return (
+    <section className="relative overflow-hidden rounded-[30px] border border-border/80 bg-surface px-5 py-6 shadow-card md:px-8 md:py-8">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-primary-soft blur-2xl"
+      />
+      <div className="relative">
+        <div className="inline-flex items-center gap-1.5 rounded-full bg-primary-soft px-3 py-1 text-[11px] font-semibold text-primary">
+          <Icon name="star" size={12} />
+          First run
+        </div>
+        <h2 className="mt-3 max-w-[20ch] text-[26px] font-extrabold leading-[1.05] tracking-[-0.045em] text-text md:text-[34px]">
+          A quiet home for your manga.
+        </h2>
+        <p className="mt-2 max-w-[48ch] text-[14px] leading-relaxed text-text-secondary">
+          Point Mitsu at a folder or drop in a file. It indexes the pages, keeps your
+          place, and stays entirely local.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <Link
+            href="/imports"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 text-[13px] font-bold text-white shadow-[0_10px_24px_-14px_rgba(179,95,134,0.95)] transition active:scale-[0.99]"
+          >
+            <Icon name="plus" size={15} />
+            Import your first files
+          </Link>
+          <Link
+            href="/settings"
+            className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-surface px-4 text-[13px] font-semibold text-text-secondary transition hover:border-border-strong hover:text-text"
+          >
+            Choose a library folder
+          </Link>
+        </div>
+        <div className="mt-6 grid gap-2 md:grid-cols-3">
+          {steps.map((step) => (
+            <div
+              key={step.title}
+              className="rounded-[20px] border border-border/70 bg-bg/50 px-3.5 py-3"
+            >
+              <div className="flex items-center gap-2 text-[12px] font-semibold text-text">
+                <Icon name={step.icon} size={14} className="text-primary" />
+                {step.title}
+              </div>
+              <p className="mt-1.5 text-[11px] leading-relaxed text-text-secondary">
+                {step.body}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const [galleries, setGalleries] = useState<Gallery[]>([]);
+  const [history, setHistory] = useState<Gallery[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api
-      .listGalleries({ page_size: 24, sort: "date_added" })
-      .then((response) => setGalleries(response.items || []))
+    Promise.all([
+      api.listGalleries({ page_size: 24, sort: "date_added" }),
+      api.getHistory(16).catch(() => [] as Gallery[]),
+      api.getSettings().catch(() => null),
+    ])
+      .then(([response, historyItems, settings]) => {
+        setGalleries(response.items || []);
+        setHistory(historyItems);
+        setStats(settings?.stats || null);
+      })
       .catch(() => setGalleries([]))
       .finally(() => setLoading(false));
   }, []);
 
-  const continueReading = galleries
-    .filter((gallery) => gallery.reading_status === "reading")
-    .slice(0, 4);
+  const continueReading = (
+    history.length > 0
+      ? history.filter((gallery) => gallery.reading_status === "reading")
+      : galleries.filter((gallery) => gallery.reading_status === "reading")
+  ).slice(0, 4);
   const favorites = galleries.filter((gallery) => gallery.favorite).slice(0, 6);
   const recent = galleries.slice(0, 6);
   const featured = continueReading[0];
@@ -97,10 +217,12 @@ export default function Home() {
       <header className="flex items-end justify-between gap-4 pt-1 md:pt-0">
         <div>
           <h1 className="text-[34px] font-extrabold leading-[1.02] tracking-[-0.045em] text-text md:text-[44px]">
-            Welcome back.
+            {!loading && galleries.length === 0 ? "Welcome to Mitsu." : "Welcome back."}
           </h1>
           <p className="mt-2 max-w-[32ch] text-[14px] leading-relaxed text-text-secondary md:text-[15px]">
-            Pick up where you left off, or find something new on your shelves.
+            {!loading && galleries.length === 0
+              ? "Your shelves are ready. Bring in a few files and make this corner yours."
+              : "Pick up where you left off, or find something new on your shelves."}
           </p>
         </div>
         <Link
@@ -113,8 +235,18 @@ export default function Home() {
       </header>
 
       {loading ? (
-        <Skeleton className="h-[210px] w-full rounded-[30px]" />
-      ) : featured ? (
+        <div className="flex flex-col gap-4">
+          <Skeleton className="h-24 w-full rounded-[24px]" />
+          <Skeleton className="h-[210px] w-full rounded-[30px]" />
+          <Skeleton className="h-40 w-full rounded-[26px]" />
+        </div>
+      ) : galleries.length === 0 ? (
+        <FirstRun />
+      ) : (
+        <>
+          {stats && <StatsStrip stats={stats} />}
+
+          {featured ? (
         <section aria-labelledby="continue-heading">
           <h2 id="continue-heading" className="sr-only">
             Continue reading
@@ -304,6 +436,8 @@ export default function Home() {
             </div>
           )}
         </section>
+      )}
+        </>
       )}
     </>
   );

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, type Collection, type GalleryDetail } from "@/lib/api";
+import { api, type Bookmark, type Collection, type GalleryDetail, type MetadataCandidate } from "@/lib/api";
 import { Icon } from "@/components/Icon";
 import { Button, ConfirmDialog, EmptyState, Modal, Skeleton } from "@/components/ui";
 
@@ -12,22 +12,30 @@ export default function GalleryDetailPage() {
   const router = useRouter();
   const id = params?.id as string;
   const [gallery, setGallery] = useState<GalleryDetail | null>(null);
+  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editOpen, setEditOpen] = useState(false);
   const [collectionOpen, setCollectionOpen] = useState(false);
+  const [metadataOpen, setMetadataOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [coverBusy, setCoverBusy] = useState<number | null>(null);
 
-  const load = async () => {
+  const load = async (quiet = false) => {
     if (!id) return;
-    setLoading(true);
+    if (!quiet) setLoading(true);
     try {
-      setGallery(await api.getGallery(id));
+      const [detail, savedBookmarks] = await Promise.all([
+        api.getGallery(id),
+        api.getBookmarks(id).catch(() => [] as Bookmark[]),
+      ]);
+      setGallery(detail);
+      setBookmarks(savedBookmarks);
     } catch (err) {
       setError((err as Error).message);
     } finally {
-      setLoading(false);
+      if (!quiet) setLoading(false);
     }
   };
 
@@ -78,6 +86,30 @@ export default function GalleryDetailPage() {
       router.push("/library");
     } catch {
       // Leave the current state in place.
+    }
+  };
+
+  const setCover = async (pageIndex: number) => {
+    if (coverBusy !== null) return;
+    setCoverBusy(pageIndex);
+    try {
+      const updated = await api.setCover(gallery.id, pageIndex);
+      setGallery(updated);
+    } catch {
+      // Leave the current cover in place.
+    } finally {
+      setCoverBusy(null);
+    }
+  };
+
+  const removeBookmark = async (bookmark: Bookmark) => {
+    setBookmarks((list) => list.filter((item) => item.id !== bookmark.id));
+    try {
+      await api.removeBookmark(gallery.id, bookmark.id);
+    } catch {
+      setBookmarks((list) =>
+        [...list, bookmark].sort((a, b) => a.page_index - b.page_index)
+      );
     }
   };
 
@@ -180,6 +212,14 @@ export default function GalleryDetailPage() {
               </button>
               <button
                 type="button"
+                onClick={() => setMetadataOpen(true)}
+                aria-label="Look up metadata"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-text-secondary transition hover:text-primary"
+              >
+                <Icon name="discover" size={18} />
+              </button>
+              <button
+                type="button"
                 onClick={() => setDeleteOpen(true)}
                 aria-label="Remove gallery"
                 className="hidden h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border bg-surface text-text-secondary transition hover:text-danger md:flex"
@@ -242,6 +282,58 @@ export default function GalleryDetailPage() {
         </div>
       </section>
 
+      <section aria-labelledby="bookmarks-heading" className="flex flex-col gap-3">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2
+            id="bookmarks-heading"
+            className="text-[20px] font-bold tracking-[-0.03em] md:text-[22px]"
+          >
+            Bookmarks
+          </h2>
+          <span className="text-[11px] text-text-muted">{bookmarks.length} saved</span>
+        </div>
+        {bookmarks.length === 0 ? (
+          <div className="rounded-[20px] border border-border/80 bg-surface px-4 py-3.5 text-[12px] leading-relaxed text-text-muted">
+            Press <span className="font-semibold text-text-secondary">B</span> while reading
+            to keep a page close, or tap the bookmark button in the reader header.
+          </div>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {bookmarks.map((bookmark) => (
+              <div
+                key={bookmark.id}
+                className="flex items-center gap-2 rounded-[20px] border border-border/80 bg-surface p-2 pl-3 transition hover:border-border-strong"
+              >
+                <Link
+                  href={`/reader/${gallery.id}?page=${bookmark.page_index + 1}`}
+                  className="flex min-w-0 flex-1 items-center gap-3 py-1"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
+                    <Icon name="bookmark" size={14} fill="currentColor" />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[13px] font-semibold text-text">
+                      Page {bookmark.page_index + 1}
+                    </span>
+                    <span className="mt-0.5 block line-clamp-1 text-[11px] text-text-muted">
+                      {bookmark.note || "Jump back to this page"}
+                    </span>
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => removeBookmark(bookmark)}
+                  aria-label={`Remove bookmark on page ${bookmark.page_index + 1}`}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-text-muted transition hover:bg-danger/10 hover:text-danger"
+                >
+                  <Icon name="x" size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section aria-labelledby="pages-heading" className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between gap-4">
           <h2 id="pages-heading" className="text-[20px] font-bold tracking-[-0.03em] md:text-[22px]">
@@ -250,32 +342,64 @@ export default function GalleryDetailPage() {
           <span className="text-[11px] text-text-muted">{gallery.page_count} total</span>
         </div>
         <div className="grid grid-cols-3 gap-2 min-[480px]:grid-cols-4 md:grid-cols-[repeat(auto-fill,minmax(112px,1fr))] md:gap-3">
-          {(gallery.pages || []).map((page) => (
-            <Link
-              key={page.page_index}
-              href={`/reader/${gallery.id}?page=${page.page_index + 1}`}
-              className="group relative aspect-[3/4] overflow-hidden rounded-xl border border-border/70 bg-primary-soft"
-            >
-              {page.content_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={page.content_url}
-                  alt=""
-                  loading="lazy"
-                  className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-[12px] text-text-muted">
-                  {page.page_index + 1}
-                </div>
-              )}
-              <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/45 px-1.5 py-0.5 text-[9px] font-semibold text-white backdrop-blur-sm">
-                {page.page_index + 1}
-              </span>
-            </Link>
-          ))}
+          {(gallery.pages || []).map((page) => {
+            const isCover = page.page_index === (gallery.cover_page_index ?? 0);
+            return (
+              <div
+                key={page.page_index}
+                className="group relative aspect-[3/4] overflow-hidden rounded-xl border border-border/70 bg-primary-soft"
+              >
+                <Link
+                  href={`/reader/${gallery.id}?page=${page.page_index + 1}`}
+                  className="absolute inset-0"
+                >
+                  {page.content_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={page.content_url}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                    />
+                  ) : (
+                    <span className="flex h-full items-center justify-center text-[12px] text-text-muted">
+                      {page.page_index + 1}
+                    </span>
+                  )}
+                  <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/45 px-1.5 py-0.5 text-[9px] font-semibold text-white backdrop-blur-sm">
+                    {page.page_index + 1}
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setCover(page.page_index)}
+                  disabled={coverBusy !== null}
+                  aria-label={`Use page ${page.page_index + 1} as cover`}
+                  className={`absolute left-1.5 top-1.5 z-10 rounded-full px-2 py-0.5 text-[9px] font-semibold backdrop-blur-sm transition disabled:opacity-60 ${
+                    isCover
+                      ? "bg-primary text-white"
+                      : "bg-black/50 text-white opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+                  }`}
+                >
+                  {coverBusy === page.page_index
+                    ? "Saving…"
+                    : isCover
+                    ? "Cover"
+                    : "Set cover"}
+                </button>
+              </div>
+            );
+          })}
         </div>
       </section>
+
+      {metadataOpen && (
+        <MetadataLookupModal
+          gallery={gallery}
+          onClose={() => setMetadataOpen(false)}
+          onApplied={() => load(true)}
+        />
+      )}
 
       {editOpen && (
         <EditMetadataModal
@@ -283,7 +407,7 @@ export default function GalleryDetailPage() {
           saving={saving}
           setSaving={setSaving}
           onClose={() => setEditOpen(false)}
-          onSaved={load}
+          onSaved={() => load(true)}
         />
       )}
 
@@ -415,6 +539,149 @@ function EditMetadataModal({
             {saving ? "Saving…" : "Save changes"}
           </Button>
         </div>
+      </div>
+    </Modal>
+  );
+}
+
+function MetadataLookupModal({
+  gallery,
+  onClose,
+  onApplied,
+}: {
+  gallery: GalleryDetail;
+  onClose: () => void;
+  onApplied: () => void;
+}) {
+  const [candidate, setCandidate] = useState<MetadataCandidate | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [applying, setApplying] = useState(false);
+  const [error, setError] = useState("");
+
+  const lookup = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      setCandidate(await api.lookupMetadata(gallery.id));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    lookup();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gallery.id]);
+
+  const apply = async () => {
+    if (!candidate) return;
+    setApplying(true);
+    setError("");
+    try {
+      await api.applyMetadata(gallery.id, candidate.id);
+      await onApplied();
+      onClose();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setApplying(false);
+    }
+  };
+
+  const suggestion = candidate?.candidate;
+  const rows = suggestion
+    ? [
+        { label: "Title", current: gallery.title, next: suggestion.title },
+        {
+          label: "Alternate title",
+          current: gallery.alternate_title || "—",
+          next: suggestion.alternate_title,
+        },
+        {
+          label: "Language",
+          current: gallery.language || "unknown",
+          next: suggestion.language,
+        },
+        {
+          label: "Tags",
+          current: (gallery.tags || []).join(", ") || "—",
+          next: suggestion.tags?.join(", "),
+        },
+        {
+          label: "Artists",
+          current: (gallery.artists || []).join(", ") || "Unknown",
+          next: suggestion.artists?.join(", "),
+        },
+      ].filter((row) => row.next && row.next !== row.current)
+    : [];
+
+  return (
+    <Modal title="Look up metadata" onClose={onClose} wide>
+      <div className="flex flex-col gap-4">
+        {loading ? (
+          <div className="flex flex-col gap-2">
+            <Skeleton className="h-16 w-full rounded-2xl" />
+            <Skeleton className="h-16 w-full rounded-2xl" />
+          </div>
+        ) : error && !candidate ? (
+          <div className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-[13px] text-danger">
+            {error}
+          </div>
+        ) : (
+          <>
+            <p className="text-[12px] leading-relaxed text-text-secondary">
+              Mitsu reads the filename and any embedded comic metadata. Remote lookups
+              stay off so the library keeps working offline.
+            </p>
+            {rows.length === 0 ? (
+              <div className="rounded-2xl bg-surface-soft px-4 py-4 text-[13px] text-text-secondary">
+                Nothing new to apply — this gallery already matches the local
+                suggestion.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {rows.map((row) => (
+                  <div
+                    key={row.label}
+                    className="rounded-2xl border border-border/80 bg-surface-soft p-3"
+                  >
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-muted">
+                      {row.label}
+                    </div>
+                    <div className="mt-1.5 grid gap-1 text-[13px] sm:grid-cols-[1fr_auto_1fr] sm:items-center sm:gap-3">
+                      <span className="line-clamp-2 text-text-muted line-through decoration-text-muted/40">
+                        {row.current}
+                      </span>
+                      <Icon
+                        name="arrow-right"
+                        size={13}
+                        className="hidden text-text-muted sm:block"
+                      />
+                      <span className="line-clamp-2 font-semibold text-text">
+                        {row.next}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {error && <div className="text-[12px] text-danger">{error}</div>}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button variant="soft" onClick={lookup} disabled={applying}>
+                Look again
+              </Button>
+              <Button onClick={apply} disabled={applying || rows.length === 0}>
+                {applying ? "Applying…" : "Apply suggestion"}
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </Modal>
   );
