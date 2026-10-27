@@ -136,16 +136,25 @@ def main() -> None:
         report(missing, frontend_ready, args.prod)
 
     pnpm = find_pnpm()
-    if not pnpm:
-        print(
-            "\npnpm was not found on PATH. Install it with `npm install -g pnpm`.\n",
-            flush=True,
-        )
-        sys.exit(1)
-
-    frontend_command = "start" if args.prod else "dev"
     frontend_host = os.getenv("MITSU_FRONTEND_HOST", "127.0.0.1")
-    frontend_cmd = [pnpm, frontend_command, "--hostname", frontend_host]
+    next_entry = os.path.join(root, "node_modules", "next", "dist", "bin", "next")
+    if args.prod and os.path.exists(next_entry):
+        # Launch Next directly: production needs no package manager, which keeps
+        # the container image small and avoids a corepack download at runtime.
+        frontend_cmd = ["node", next_entry, "start", "--hostname", frontend_host]
+    else:
+        if not pnpm:
+            print(
+                "\npnpm was not found on PATH. Install it with `npm install -g pnpm`.\n",
+                flush=True,
+            )
+            sys.exit(1)
+        frontend_cmd = [
+            pnpm,
+            "start" if args.prod else "dev",
+            "--hostname",
+            frontend_host,
+        ]
     print(
         f"\n  mitsu · {'production' if args.prod else 'development'}\n"
         f"  app        {FRONTEND_URL}\n"

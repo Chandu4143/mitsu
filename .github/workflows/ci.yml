@@ -38,7 +38,19 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          push: false
-          load: false
+          load: true
+          tags: mitsu:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Smoke test
+        run: |
+          docker run -d --name mitsu-ci -p 3000:3000 mitsu:ci
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/api/v1/settings > /dev/null; then
+              echo "container responded"
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs mitsu-ci
+          exit 1

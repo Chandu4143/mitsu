@@ -37,13 +37,9 @@ COPY --from=backend /usr/local/lib/python3.12/site-packages /usr/local/lib/pytho
 COPY backend/ ./backend/
 COPY run.py ./
 
-# Node.js 20 runtime + corepack (both included in the official image layout at
-# /usr/local), so run.py can spawn `pnpm dev` for the frontend.
+# Node.js 20 runtime only. `run.py --prod` launches Next through
+# `node node_modules/next/dist/bin/next`, so no package manager is needed here.
 COPY --from=node:20-bookworm-slim /usr/local/bin/node /usr/local/bin/node
-COPY --from=node:20-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
-RUN ln -s ../lib/node_modules/corepack/bin/corepack.js /usr/local/bin/corepack \
- && corepack enable \
- && corepack prepare pnpm@9.12.3 --activate
 
 # Frontend: source, configs and node_modules from the build stage.
 COPY --from=frontend /app/node_modules ./node_modules
