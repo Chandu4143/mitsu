@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon, type IconName } from "./Icon";
+import { ThemeToggle } from "./ThemeToggle";
 import { api, type Settings } from "@/lib/api";
 
 type NavItem = { href: string; label: string; icon: IconName };
@@ -16,6 +17,7 @@ const primaryItems: NavItem[] = [
 ];
 
 const utilityItems: NavItem[] = [
+  { href: "/history", label: "History", icon: "history" },
   { href: "/imports", label: "Imports", icon: "imports" },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];
@@ -211,6 +213,11 @@ export default function Sidebar() {
                 ))}
               </div>
             )}
+
+            <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-surface-soft px-3 py-2.5">
+              <div className="text-[12px] font-semibold text-text">Appearance</div>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       )}
@@ -266,6 +273,10 @@ export default function Sidebar() {
             Local library
           </div>
           <div className="mt-1.5 text-[11px] leading-relaxed text-text-secondary">{statsText}</div>
+          <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-3">
+            <span className="text-[11px] font-semibold text-text-secondary">Appearance</span>
+            <ThemeToggle />
+          </div>
         </div>
       </aside>
     </>

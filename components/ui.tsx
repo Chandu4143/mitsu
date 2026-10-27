@@ -13,7 +13,7 @@ export function Button({
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[14px] font-semibold transition duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:active:scale-100";
   const styles: Record<ButtonVariant, string> = {
     primary: "bg-primary text-white shadow-[0_8px_20px_-12px_rgba(179,95,134,0.9)] hover:bg-primary-hover",
-    soft: "bg-primary-soft text-primary hover:bg-[#f3d7e4]",
+    soft: "bg-primary-soft text-primary hover:bg-primary-soft-hover",
     ghost: "border border-border bg-surface text-text-secondary hover:border-border-strong hover:text-text",
     danger: "bg-danger text-white hover:bg-[#a94c4c]",
   };
