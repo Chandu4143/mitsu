@@ -6,6 +6,9 @@ node_modules
 .next
 data
 dist
+build
+out
+src-tauri
 *.log
 tsconfig.tsbuildinfo
 

@@ -178,16 +178,16 @@ const galleryId = await firstGalleryId();
 const mobileRoutes = [
   ["01-home", "/"],
   ["02-library", "/library"],
-  ["03-gallery", `/gallery/${galleryId}`],
+  ["03-gallery", `/gallery?id=${galleryId}`],
   ["04-collections", "/collections"],
   ["05-imports", "/imports"],
-  ["06-reader", `/reader/${galleryId}`],
+  ["06-reader", `/reader?id=${galleryId}`],
 ];
 
 const desktopRoutes = [
   ["01-home", "/"],
   ["02-library", "/library"],
-  ["03-gallery", `/gallery/${galleryId}`],
+  ["03-gallery", `/gallery?id=${galleryId}`],
   ["04-collections", "/collections"],
   ["05-imports", "/imports"],
   ["06-discover", "/discover"],

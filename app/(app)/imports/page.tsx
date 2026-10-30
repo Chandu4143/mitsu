@@ -258,7 +258,7 @@ export default function Imports() {
           </div>
           {notice.galleryId && (
             <Link
-              href={`/gallery/${notice.galleryId}`}
+              href={`/gallery?id=${notice.galleryId}`}
               className="shrink-0 self-center rounded-full bg-primary px-3 py-1.5 text-[11px] font-semibold text-white"
             >
               Open

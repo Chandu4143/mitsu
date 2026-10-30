@@ -34,6 +34,11 @@ EXCLUDED_DIRS = {
     "data",
     "out",
     "build",
+    # Rust desktop build output and the packaged Python sidecar binary.
+    "target",
+    "binaries",
+    ".cargo",
+    ".pandacode",
 }
 
 # Files skipped anywhere in the tree. Patterns are matched by name.

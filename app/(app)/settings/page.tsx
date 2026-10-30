@@ -83,6 +83,139 @@ const selectClass =
 const actionButton =
   "inline-flex min-h-9 items-center justify-center gap-1.5 rounded-full px-3 text-[11px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-45";
 
+type UpdatePhase = "idle" | "checking" | "current" | "available" | "installing";
+
+function DesktopPanel() {
+  const [version, setVersion] = useState("");
+  const [phase, setPhase] = useState<UpdatePhase>("idle");
+  const [latest, setLatest] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    import("@tauri-apps/api/core")
+      .then(({ invoke }) => invoke<string>("desktop_info"))
+      .then((value) => {
+        if (active) setVersion(value);
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    // The launch check may find an update before this panel is opened; the
+    // shell emits an event so the button does not disappear after "Later".
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    import("@tauri-apps/api/event")
+      .then(({ listen }) =>
+        listen<string>("mitsu://update-available", (event) => {
+          setLatest(event.payload);
+          setPhase("available");
+          setError("");
+        })
+      )
+      .then((stop) => {
+        if (cancelled) stop();
+        else unlisten = stop;
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+      unlisten?.();
+    };
+  }, []);
+
+  const check = async () => {
+    setPhase("checking");
+    setError("");
+    setLatest(null);
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const result = await invoke<string | null>("check_for_update");
+      setLatest(result);
+      setPhase(result ? "available" : "current");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setPhase("idle");
+    }
+  };
+
+  const install = async () => {
+    setPhase("installing");
+    setError("");
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("install_update");
+      // A successful install restarts the app, so reaching this point means
+      // there was nothing left to install.
+      setLatest(null);
+      setPhase("current");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setPhase("idle");
+    }
+  };
+
+  const busy = phase === "checking" || phase === "installing";
+
+  return (
+    <Section title="Desktop app" icon="download">
+      <Row label="Version" value={version || "—"} />
+      <Row
+        label="Updates"
+        value={phase === "available" && latest ? `${latest} available` : "Signed, from GitHub Releases"}
+        detail="Mitsu checks once every six hours on launch. Update files are verified before they are installed."
+      />
+      <div className="flex flex-col gap-2 py-3">
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={check}
+            disabled={busy}
+            className={`${actionButton} border border-border bg-surface-soft text-text-secondary hover:text-text`}
+          >
+            <Icon name="refresh" size={13} />
+            {phase === "checking" ? "Checking…" : "Check for updates"}
+          </button>
+          {phase === "available" && (
+            <button
+              type="button"
+              onClick={install}
+              className={`${actionButton} bg-primary text-white hover:bg-primary-hover`}
+            >
+              <Icon name="download" size={13} />
+              Install {latest} and restart
+            </button>
+          )}
+        </div>
+        {phase === "current" && !error && (
+          <div className="text-[11px] text-success">You are on the newest version.</div>
+        )}
+        {phase === "installing" && (
+          <div className="text-[11px] text-text-muted">Downloading update. Mitsu restarts when it is ready.</div>
+        )}
+        {error && <div className="text-[12px] text-danger">{error}</div>}
+      </div>
+    </Section>
+  );
+}
+
+function DesktopSection() {
+  const [desktop, setDesktop] = useState(false);
+
+  useEffect(() => {
+    // The shell injects this before the app boots; a browser never has it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDesktop(typeof window !== "undefined" && Boolean(window.__MITSU_API_BASE__));
+  }, []);
+
+  if (!desktop) return null;
+  return <DesktopPanel />;
+}
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [backupInfo, setBackupInfo] = useState<BackupInfo | null>(null);
@@ -550,7 +683,7 @@ export default function SettingsPage() {
                     {group.items.map((item) => (
                       <Link
                         key={item.id}
-                        href={`/gallery/${item.id}`}
+                        href={`/gallery?id=${item.id}`}
                         className="line-clamp-1 text-[11px] text-text-secondary transition hover:text-primary"
                       >
                         {item.title}
@@ -583,6 +716,8 @@ export default function SettingsPage() {
         ))}
         <Row label="Thumbnails" value="Generated on demand" />
       </Section>
+
+      <DesktopSection />
 
       <Section title="Remove a gallery" icon="alert" tone="danger">
         <Row

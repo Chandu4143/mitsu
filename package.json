@@ -1,6 +1,6 @@
 {
   "name": "mitsu",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -9,18 +9,26 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "screenshots": "node scripts/capture-screenshots.mjs",
-    "package": "python scripts/package.py"
+    "screenshots:desktop": "node scripts/capture-desktop-screenshots.mjs",
+    "package": "python scripts/package.py",
+    "build:desktop": "cross-env MITSU_STATIC_EXPORT=1 next build",
+    "sidecar": "python scripts/build-sidecar.py",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "pnpm sidecar && tauri build --config src-tauri/tauri.bundle.conf.json"
   },
   "dependencies": {
+    "@tauri-apps/api": "2.12.4",
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
+    "@tauri-apps/cli": "2.12.4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.2",
     "postcss": "^8.5.31",

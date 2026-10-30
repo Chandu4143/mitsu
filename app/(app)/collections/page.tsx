@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, type Collection, type Gallery } from "@/lib/api";
 import { Icon } from "@/components/Icon";
-import { Button, EmptyState, Modal, Skeleton } from "@/components/ui";
+import { Button, ConfirmDialog, EmptyState, Modal, Skeleton } from "@/components/ui";
 
 function CollectionCover({ covers }: { covers?: Gallery[] }) {
   const items = covers || [];
@@ -46,6 +46,9 @@ function CollectionsInner() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [pendingGallery, setPendingGallery] = useState(searchParams.get("add"));
+  const [renameTarget, setRenameTarget] = useState<Collection | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<Collection | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -94,15 +97,27 @@ function CollectionsInner() {
   };
 
   const removeCollection = async (id: string) => {
-    if (!confirm("Delete this collection? Galleries remain in your library.")) return;
-    await api.deleteCollection(id);
+    setDeleteTarget(null);
+    try {
+      await api.deleteCollection(id);
+    } catch (err) {
+      setError((err as Error).message);
+    }
     await load();
   };
 
-  const renameCollection = async (collection: Collection) => {
-    const next = prompt("Collection name", collection.name);
-    if (!next || next.trim() === collection.name) return;
-    await api.patchCollection(collection.id, { name: next.trim() });
+  const renameCollection = async (collection: Collection, value: string) => {
+    const next = value.trim();
+    if (!next || next === collection.name) {
+      setRenameTarget(null);
+      return;
+    }
+    setRenameTarget(null);
+    try {
+      await api.patchCollection(collection.id, { name: next });
+    } catch (err) {
+      setError((err as Error).message);
+    }
     await load();
   };
 
@@ -169,13 +184,13 @@ function CollectionsInner() {
               key={collection.id}
               className="group overflow-hidden rounded-[24px] border border-border/80 bg-surface transition hover:border-border-strong"
             >
-              <Link href={`/collections/${collection.id}`} className="block">
+              <Link href={`/collection?id=${collection.id}`} className="block">
                 <div className="h-[126px] overflow-hidden md:h-[178px]">
                   <CollectionCover covers={covers[collection.id]} />
                 </div>
               </Link>
               <div className="flex items-center gap-2 px-3 py-3.5">
-                <Link href={`/collections/${collection.id}`} className="min-w-0 flex-1">
+                <Link href={`/collection?id=${collection.id}`} className="min-w-0 flex-1">
                   <div className="truncate text-[14px] font-bold tracking-[-0.02em] text-text">
                     {collection.name}
                   </div>
@@ -185,7 +200,10 @@ function CollectionsInner() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => renameCollection(collection)}
+                  onClick={() => {
+                    setRenameTarget(collection);
+                    setRenameValue(collection.name);
+                  }}
                   className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition hover:bg-surface-soft hover:text-text"
                   aria-label="Rename collection"
                 >
@@ -193,7 +211,7 @@ function CollectionsInner() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => removeCollection(collection.id)}
+                  onClick={() => setDeleteTarget(collection)}
                   className="flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition hover:bg-danger/10 hover:text-danger"
                   aria-label="Delete collection"
                 >
@@ -232,6 +250,45 @@ function CollectionsInner() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {renameTarget && (
+        <Modal title="Rename collection" onClose={() => setRenameTarget(null)}>
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              renameCollection(renameTarget, renameValue);
+            }}
+          >
+            <input
+              value={renameValue}
+              onChange={(event) => setRenameValue(event.target.value)}
+              placeholder="Collection name"
+              autoFocus
+              className="min-h-12 rounded-2xl border border-border bg-surface-soft px-4 text-[16px] text-text outline-none focus:border-primary md:text-[14px]"
+            />
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="ghost" type="button" onClick={() => setRenameTarget(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!renameValue.trim()}>
+                Save
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {deleteTarget && (
+        <ConfirmDialog
+          title="Delete collection?"
+          description={`"${deleteTarget.name}" will be removed. The galleries in it stay in your library.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={() => removeCollection(deleteTarget.id)}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
     </>
   );

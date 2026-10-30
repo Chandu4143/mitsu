@@ -127,7 +127,7 @@ export default function HistoryPage() {
                       className="flex items-center gap-3.5 rounded-[22px] border border-border/80 bg-surface p-2.5 pr-3 transition hover:border-border-strong"
                     >
                       <Link
-                        href={`/gallery/${gallery.id}`}
+                        href={`/gallery?id=${gallery.id}`}
                         className="relative h-[92px] w-[69px] shrink-0 overflow-hidden rounded-[14px] bg-primary-soft"
                       >
                         {gallery.cover_url ? (
@@ -147,7 +147,7 @@ export default function HistoryPage() {
 
                       <div className="min-w-0 flex-1">
                         <Link
-                          href={`/gallery/${gallery.id}`}
+                          href={`/gallery?id=${gallery.id}`}
                           className="line-clamp-2 text-[14px] font-semibold leading-snug text-text"
                         >
                           {gallery.title}
@@ -170,7 +170,7 @@ export default function HistoryPage() {
                       </div>
 
                       <Link
-                        href={`/reader/${gallery.id}?page=${gallery.current_page + 1}`}
+                        href={`/reader?id=${gallery.id}&page=${gallery.current_page + 1}`}
                         aria-label={`Resume ${gallery.title}`}
                         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary transition hover:bg-primary-soft-hover"
                       >

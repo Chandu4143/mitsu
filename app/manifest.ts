@@ -1,5 +1,8 @@
 import type { MetadataRoute } from "next";
 
+// Required for the static desktop build (`output: "export"`).
+export const dynamic = "force-static";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Mitsu — your little reading corner",

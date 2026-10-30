@@ -1,22 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, type Collection, type Gallery } from "@/lib/api";
 import { Icon } from "@/components/Icon";
-import { Button, EmptyState, Modal, Skeleton } from "@/components/ui";
+import { Button, ConfirmDialog, EmptyState, Modal, Skeleton } from "@/components/ui";
 
 export default function CollectionDetail() {
-  const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const id = params?.id as string;
+  const id = searchParams.get("id") || "";
   const [collection, setCollection] = useState<Collection | null>(null);
   const [galleries, setGalleries] = useState<Gallery[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [allGalleries, setAllGalleries] = useState<Gallery[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const load = async () => {
     if (!id) return;
@@ -24,16 +28,26 @@ export default function CollectionDetail() {
     try {
       const detail = await api.getCollection(id);
       setCollection(detail);
+      setError("");
       const ids: string[] = detail.gallery_ids || [];
       const items = await Promise.all(ids.map((gid) => api.getGallery(gid).catch(() => null)));
       setGalleries(items.filter(Boolean) as Gallery[]);
+    } catch (err) {
+      setCollection(null);
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!id) {
+      // Nothing to fetch; show the "no collection selected" state instead of
+      // staying on the skeleton forever.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoading(false);
+      return;
+    }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -80,8 +94,56 @@ export default function CollectionDetail() {
     );
   }
 
+  if (!id) {
+    return (
+      <>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/collections"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-full text-[13px] font-semibold text-text-secondary transition hover:text-text"
+          >
+            <Icon name="arrow-left" size={16} />
+            Collections
+          </Link>
+        </div>
+        <EmptyState
+          icon="collections"
+          title="No collection selected"
+          description="Open a collection to see the galleries inside it."
+          action={
+            <Link href="/collections">
+              <Button variant="soft">Browse collections</Button>
+            </Link>
+          }
+        />
+      </>
+    );
+  }
+
   if (!collection) {
-    return <EmptyState icon="collections" title="Collection not found" />;
+    return (
+      <>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/collections"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-full text-[13px] font-semibold text-text-secondary transition hover:text-text"
+          >
+            <Icon name="arrow-left" size={16} />
+            Collections
+          </Link>
+        </div>
+        <EmptyState
+          icon="collections"
+          title="Collection not found"
+          description={error || "This collection may have been deleted."}
+          action={
+            <Link href="/collections">
+              <Button variant="soft">Browse collections</Button>
+            </Link>
+          }
+        />
+      </>
+    );
   }
 
   return (
@@ -117,11 +179,9 @@ export default function CollectionDetail() {
           </Button>
           <button
             type="button"
-            onClick={async () => {
-              const next = prompt("Collection name", collection.name);
-              if (!next || next.trim() === collection.name) return;
-              await api.patchCollection(collection.id, { name: next.trim() });
-              await load();
+            onClick={() => {
+              setRenameValue(collection.name);
+              setRenameOpen(true);
             }}
             className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-text-secondary transition hover:text-text"
             aria-label="Rename collection"
@@ -130,11 +190,7 @@ export default function CollectionDetail() {
           </button>
           <button
             type="button"
-            onClick={async () => {
-              if (!confirm("Delete this collection? Galleries remain in your library.")) return;
-              await api.deleteCollection(collection.id);
-              router.push("/collections");
-            }}
+            onClick={() => setDeleteOpen(true)}
             className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-surface text-text-secondary transition hover:border-danger/30 hover:text-danger"
             aria-label="Delete collection"
           >
@@ -164,7 +220,7 @@ export default function CollectionDetail() {
               <span className="hidden w-5 shrink-0 text-center text-[11px] font-semibold tabular-nums text-text-muted sm:block">
                 {index + 1}
               </span>
-              <Link href={`/gallery/${gallery.id}`} className="shrink-0">
+              <Link href={`/gallery?id=${gallery.id}`} className="shrink-0">
                 <div className="h-[88px] w-[66px] overflow-hidden rounded-[14px] bg-primary-soft">
                   {gallery.cover_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -178,7 +234,7 @@ export default function CollectionDetail() {
               </Link>
               <div className="min-w-0 flex-1">
                 <Link
-                  href={`/gallery/${gallery.id}`}
+                  href={`/gallery?id=${gallery.id}`}
                   className="line-clamp-2 text-[14px] font-semibold leading-snug text-text"
                 >
                   {gallery.title}
@@ -266,6 +322,61 @@ export default function CollectionDetail() {
             </Button>
           </div>
         </Modal>
+      )}
+
+      {renameOpen && collection && (
+        <Modal title="Rename collection" onClose={() => setRenameOpen(false)}>
+          <form
+            className="flex flex-col gap-3"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const next = renameValue.trim();
+              setRenameOpen(false);
+              if (!next || next === collection.name) return;
+              try {
+                await api.patchCollection(collection.id, { name: next });
+                await load();
+              } catch (err) {
+                setError((err as Error).message);
+              }
+            }}
+          >
+            <input
+              value={renameValue}
+              onChange={(event) => setRenameValue(event.target.value)}
+              placeholder="Collection name"
+              autoFocus
+              className="min-h-12 rounded-2xl border border-border bg-surface-soft px-4 text-[16px] text-text outline-none focus:border-primary md:text-[14px]"
+            />
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="ghost" type="button" onClick={() => setRenameOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={!renameValue.trim()}>
+                Save
+              </Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {deleteOpen && collection && (
+        <ConfirmDialog
+          title="Delete collection?"
+          description={`"${collection.name}" will be removed. The galleries in it stay in your library.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={async () => {
+            setDeleteOpen(false);
+            try {
+              await api.deleteCollection(collection.id);
+              router.push("/collections");
+            } catch (err) {
+              setError((err as Error).message);
+            }
+          }}
+          onCancel={() => setDeleteOpen(false)}
+        />
       )}
     </>
   );

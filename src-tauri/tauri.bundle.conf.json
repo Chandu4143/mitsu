@@ -1,0 +1,6 @@
+{
+  "bundle": {
+    "externalBin": ["binaries/mitsu-backend"],
+    "createUpdaterArtifacts": true
+  }
+}

@@ -189,17 +189,71 @@ export type RemoteSearchResult = {
   cover_url?: string | null;
   thumbnail_url?: string | null;
   page_count?: number | null;
+  num_favorites?: number;
   source?: string;
   source_url?: string;
+  in_library?: boolean;
+  library_id?: string | null;
 };
 
 export type RemoteSearchResponse = {
   items: RemoteSearchResult[];
-  page?: number;
+  page: number;
+  per_page?: number;
   total?: number;
+  num_pages?: number;
+  sort?: string;
+  language?: string;
+  query?: string;
 };
 
-const BASE = "/api/v1";
+declare global {
+  interface Window {
+    /** Injected by the Tauri shell before the app boots. Empty in a browser. */
+    __MITSU_API_BASE__?: string;
+  }
+}
+
+function desktopApiBase(): string | null {
+  if (typeof window === "undefined") return null;
+  const value = window.__MITSU_API_BASE__;
+  if (!value) return null;
+  return value.replace(/\/$/, "");
+}
+
+const DESKTOP_API_BASE = desktopApiBase();
+const BASE = DESKTOP_API_BASE || "/api/v1";
+const BACKEND_ORIGIN = DESKTOP_API_BASE
+  ? DESKTOP_API_BASE.replace(/\/api\/v1$/, "")
+  : "";
+
+/**
+ * The backend returns root-relative asset URLs (`/api/v1/galleries/.../cover`).
+ * A browser resolves those against the site origin; the desktop shell serves the
+ * UI from `tauri://localhost`, so those URLs have to point at the local API.
+ */
+function normalizeAssetUrls(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(normalizeAssetUrls);
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+      out[key] =
+        DESKTOP_API_BASE &&
+        typeof entry === "string" &&
+        entry.startsWith("/") &&
+        (key.endsWith("_url") || key === "url")
+          ? `${BACKEND_ORIGIN}${entry}`
+          : normalizeAssetUrls(entry);
+    }
+    return out;
+  }
+  return value;
+}
+
+/** Absolute URL for the API base, used by download/backup links. */
+export function apiBaseUrl(): string {
+  return BASE;
+}
 
 async function req<T = unknown>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(BASE + path, {
@@ -224,7 +278,7 @@ async function req<T = unknown>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(message);
   }
   if (res.status === 204) return null as T;
-  return (await res.json()) as T;
+  return normalizeAssetUrls(await res.json()) as T;
 }
 
 export const api = {
@@ -381,9 +435,10 @@ export const api = {
     return (await res.json()) as RestoreResult;
   },
 
-  searchNhentai: (q: string, page = 1) =>
+  searchNhentai: (q: string, page = 1, sort = "date", language = "") =>
     req<RemoteSearchResponse>(
-      `/providers/nhentai/search?q=${encodeURIComponent(q)}&page=${page}`
+      `/providers/nhentai/search?q=${encodeURIComponent(q)}&page=${page}` +
+        `&sort=${encodeURIComponent(sort)}&language=${encodeURIComponent(language)}`
     ),
   importNhentai: (id: string) =>
     req<Job>("/providers/nhentai/import", {

@@ -30,6 +30,26 @@ jobs:
       - run: python -m pip install -r backend/requirements-dev.txt
       - run: cd backend && python -m pytest -q
 
+  desktop:
+    name: Desktop shell
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+      - run: pnpm install --frozen-lockfile
+      - name: Build the static export embedded by Tauri
+        run: pnpm build:desktop
+      - name: Check the Rust shell
+        run: cargo check --manifest-path src-tauri/Cargo.toml
+
   container:
     runs-on: ubuntu-latest
     steps:

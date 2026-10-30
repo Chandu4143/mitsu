@@ -1,9 +1,9 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { api, type Bookmark } from "@/lib/api";
+import { api, apiBaseUrl, type Bookmark } from "@/lib/api";
 import { Icon } from "@/components/Icon";
 import { Button } from "@/components/ui";
 
@@ -44,11 +44,35 @@ function useDebouncedCallback(callback: (value: number) => void, delay: number) 
   };
 }
 
+function PageFallback({
+  pageNumber,
+  onRetry,
+  className = "",
+}: {
+  pageNumber: number;
+  onRetry: () => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex flex-col items-center justify-center gap-2 bg-white/[0.03] px-4 text-center text-reader-text/60 ${className}`}
+    >
+      <Icon name="alert" size={18} />
+      <span className="text-[11px]">Page {pageNumber} didn’t load</span>
+      <button
+        type="button"
+        onClick={onRetry}
+        className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-reader-text"
+      >
+        Retry
+      </button>
+    </div>
+  );
+}
+
 function ReaderInner() {
-  const params = useParams();
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const id = params?.id as string;
+  const id = searchParams.get("id") || "";
 
   const [total, setTotal] = useState(0);
   const [title, setTitle] = useState("Loading…");
@@ -70,6 +94,8 @@ function ReaderInner() {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [pageRatios, setPageRatios] = useState<Record<number, number>>({});
+  const [failedPages, setFailedPages] = useState<Record<number, boolean>>({});
+  const [retryTokens, setRetryTokens] = useState<Record<number, number>>({});
   const [columnWidth, setColumnWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const continuousRef = useRef<HTMLDivElement | null>(null);
@@ -405,7 +431,7 @@ function ReaderInner() {
     candidates.forEach((candidate) => {
       if (candidate >= 1 && candidate <= total) {
         const image = new Image();
-        image.src = `/api/v1/galleries/${id}/pages/${candidate - 1}/content`;
+        image.src = `${apiBaseUrl()}/galleries/${id}/pages/${candidate - 1}/content`;
       }
     });
   }, [id, page, total]);
@@ -512,7 +538,25 @@ function ReaderInner() {
       ? "max-h-[calc(100dvh-200px)] w-auto max-w-[49%] object-contain md:max-h-[calc(100dvh-186px)]"
       : "w-full max-w-[49%] object-contain";
 
-  const pageUrl = (index: number) => `/api/v1/galleries/${id}/pages/${index - 1}/content`;
+  const pageUrl = (index: number) => {
+    const retry = retryTokens[index];
+    return `${apiBaseUrl()}/galleries/${id}/pages/${index - 1}/content${
+      retry ? `?retry=${retry}` : ""
+    }`;
+  };
+
+  const markPageFailed = (index: number) => {
+    setFailedPages((current) => ({ ...current, [index]: true }));
+  };
+
+  const retryPage = (index: number) => {
+    setFailedPages((current) => {
+      const next = { ...current };
+      delete next[index];
+      return next;
+    });
+    setRetryTokens((current) => ({ ...current, [index]: (current[index] || 0) + 1 }));
+  };
 
   const ratioFor = (index: number) => pageRatios[index] ?? DEFAULT_PAGE_RATIO;
   const windowStart = Math.max(1, page - PAGE_WINDOW_BACK);
@@ -530,6 +574,25 @@ function ReaderInner() {
   const stripBefore = (stripStart - 1) * (STRIP_SLOT_WIDTH + STRIP_GAP);
   const stripAfter = Math.max(0, total - stripEnd) * (STRIP_SLOT_WIDTH + STRIP_GAP);
 
+  if (!id) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-reader-bg px-6 text-reader-text">
+        <div className="text-center">
+          <div className="text-[16px] font-semibold">No gallery selected</div>
+          <div className="mt-1 text-[13px] text-reader-text/60">
+            Open a gallery from your library to start reading.
+          </div>
+          <Link
+            href="/library"
+            className="mt-4 inline-flex min-h-11 items-center rounded-full bg-white/10 px-5 text-[13px] font-semibold"
+          >
+            Browse library
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-reader-bg px-6 text-reader-text">
@@ -537,7 +600,7 @@ function ReaderInner() {
           <div className="text-[16px] font-semibold">{error}</div>
           <button
             type="button"
-            onClick={() => router.refresh()}
+            onClick={() => window.location.reload()}
             className="mt-4 min-h-11 rounded-full bg-white/10 px-5 text-[13px] font-semibold"
           >
             Try again
@@ -556,7 +619,7 @@ function ReaderInner() {
       {showControls && (
         <header className="relative z-20 flex items-center gap-2 border-b border-white/[0.06] bg-reader-surface/92 px-3 pb-3 pt-[max(0.65rem,env(safe-area-inset-top))] backdrop-blur-xl md:gap-3 md:px-6 md:py-4">
           <Link
-            href={`/gallery/${id}`}
+            href={`/gallery?id=${id}`}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/[0.08] text-reader-text transition active:scale-95"
             aria-label="Back to gallery"
           >
@@ -758,26 +821,42 @@ function ReaderInner() {
                     key={pageNumber}
                     className="overflow-hidden rounded-[10px] border border-white/[0.08] bg-white/[0.03] md:rounded-md"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={pageUrl(pageNumber)}
-                      alt=""
-                      className={`reader-page-in ${spreadFit}`}
-                      onError={() => setError("This page could not be loaded.")}
-                    />
+                    {failedPages[pageNumber] ? (
+                      <PageFallback
+                        pageNumber={pageNumber}
+                        onRetry={() => retryPage(pageNumber)}
+                        className="h-[52vh] w-[min(38vw,300px)]"
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={pageUrl(pageNumber)}
+                        alt=""
+                        className={`reader-page-in ${spreadFit}`}
+                        onError={() => markPageFailed(pageNumber)}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
             ) : (
               <div className="overflow-hidden rounded-[10px] border border-white/[0.08] bg-white/[0.03] md:rounded-md">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  key={page}
-                  src={pageUrl(page)}
-                  alt=""
-                  className={`reader-page-in ${singleFit}`}
-                  onError={() => setError("This page could not be loaded.")}
-                />
+                {failedPages[page] ? (
+                  <PageFallback
+                    pageNumber={page}
+                    onRetry={() => retryPage(page)}
+                    className="h-[56vh] w-[min(80vw,460px)]"
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={page}
+                    src={pageUrl(page)}
+                    alt=""
+                    className={`reader-page-in ${singleFit}`}
+                    onError={() => markPageFailed(page)}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -841,14 +920,22 @@ function ReaderInner() {
                     className="mt-2 w-full overflow-hidden rounded-[10px] border border-white/[0.08] bg-white/[0.03] md:rounded-md"
                     style={{ aspectRatio: `1 / ${ratio}` }}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={pageUrl(pageNumber)}
-                      alt=""
-                      loading="lazy"
-                      className="h-full w-full object-contain"
-                      onError={() => setError("This page could not be loaded.")}
-                    />
+                    {failedPages[pageNumber] ? (
+                      <PageFallback
+                        pageNumber={pageNumber}
+                        onRetry={() => retryPage(pageNumber)}
+                        className="h-full w-full"
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={pageUrl(pageNumber)}
+                        alt=""
+                        loading="lazy"
+                        className="h-full w-full object-contain"
+                        onError={() => markPageFailed(pageNumber)}
+                      />
+                    )}
                   </div>
                 </div>
               );

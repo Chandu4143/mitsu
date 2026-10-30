@@ -105,6 +105,18 @@ function LibraryInner() {
     router.replace(`/library?${params.toString()}`);
   };
 
+  useEffect(() => {
+    // Search as you type: update the query after a short pause, so the grid
+    // filters without requiring Enter. Enter still applies it immediately.
+    const handle = window.setTimeout(() => {
+      const next = search.trim();
+      if (next === q) return;
+      updateParams({ q: next || null, page: null });
+    }, 350);
+    return () => window.clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
   const toggleFavorite = async (gallery: Gallery) => {
     try {
       await api.setFavorite(gallery.id, !gallery.favorite);
@@ -310,12 +322,12 @@ function LibraryInner() {
               key={gallery.id}
               className="flex items-center gap-3.5 rounded-[20px] border border-border/80 bg-surface p-2.5 pr-3 transition hover:border-border-strong"
             >
-              <Link href={`/gallery/${gallery.id}`} className="shrink-0">
+              <Link href={`/gallery?id=${gallery.id}`} className="shrink-0">
                 <Cover gallery={gallery} className="h-[92px] w-[69px] rounded-[14px]" />
               </Link>
               <div className="min-w-0 flex-1">
                 <Link
-                  href={`/gallery/${gallery.id}`}
+                  href={`/gallery?id=${gallery.id}`}
                   className="line-clamp-2 text-[14px] font-semibold leading-snug text-text"
                 >
                   {gallery.title}
@@ -326,7 +338,7 @@ function LibraryInner() {
                 </div>
                 <div className="mt-2 flex items-center gap-1.5">
                   <Link
-                    href={`/reader/${gallery.id}`}
+                    href={`/reader?id=${gallery.id}`}
                     className="inline-flex min-h-8 items-center gap-1 rounded-full bg-primary-soft px-3 text-[11px] font-semibold text-primary"
                   >
                     <Icon name="play" size={11} />
@@ -360,7 +372,7 @@ function LibraryInner() {
           {galleries.map((gallery) => (
             <div key={gallery.id} className="group min-w-0">
               <div className="relative">
-                <Link href={`/gallery/${gallery.id}`} className="block">
+                <Link href={`/gallery?id=${gallery.id}`} className="block">
                   <Cover
                     gallery={gallery}
                     className="aspect-[3/4] w-full rounded-[18px] shadow-card ring-1 ring-black/[0.05] transition duration-300 group-hover:-translate-y-1"
@@ -393,7 +405,7 @@ function LibraryInner() {
                   </span>
                 )}
               </div>
-              <Link href={`/gallery/${gallery.id}`} className="block">
+              <Link href={`/gallery?id=${gallery.id}`} className="block">
                 <div
                   className="mt-2.5 line-clamp-2 min-h-[34px] text-[13px] font-semibold leading-[1.3] tracking-[-0.01em] text-text"
                   title={gallery.title}

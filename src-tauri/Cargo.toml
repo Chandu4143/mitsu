@@ -1,0 +1,32 @@
+[package]
+name = "mitsu"
+version = "1.2.0"
+description = "Mitsu - a local-first manga library and reader"
+authors = ["Mitsu contributors"]
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "mitsu_lib"
+# Desktop-only: a plain rlib. The cdylib crate type some Tauri templates use is
+# for mobile targets and fails to link with the MinGW toolchain on Windows.
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-updater = "2"
+tauri-plugin-process = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

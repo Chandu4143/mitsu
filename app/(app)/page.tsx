@@ -24,7 +24,7 @@ function GalleryCard({ gallery }: { gallery: Gallery }) {
 
   return (
     <Link
-      href={`/gallery/${gallery.id}`}
+      href={`/gallery?id=${gallery.id}`}
       className="group w-[132px] shrink-0 snap-start md:w-auto"
     >
       <div className="relative aspect-[3/4] overflow-hidden rounded-[18px] bg-primary-soft shadow-cover ring-1 ring-black/[0.06] transition duration-300 group-hover:-translate-y-1">
@@ -252,7 +252,7 @@ export default function Home() {
             Continue reading
           </h2>
           <Link
-            href={`/reader/${featured.id}`}
+            href={`/reader?id=${featured.id}`}
             className="group relative block overflow-hidden rounded-[30px] bg-[#352a32] p-4 text-white shadow-float md:p-6"
           >
             {featured.cover_url && (
@@ -339,7 +339,7 @@ export default function Home() {
               return (
                 <Link
                   key={gallery.id}
-                  href={`/reader/${gallery.id}`}
+                  href={`/reader?id=${gallery.id}`}
                   className="flex items-center gap-3.5 rounded-[20px] border border-border/80 bg-surface p-2.5 pr-4 transition hover:border-border-strong"
                 >
                   <div className="h-[70px] w-[52px] shrink-0 overflow-hidden rounded-xl bg-primary-soft">

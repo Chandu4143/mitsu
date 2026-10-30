@@ -2,6 +2,41 @@
 
 All notable changes to Mitsu are documented here. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.2.0] - 2026-10-30
+
+### Added
+
+- Tauri v2 desktop shell for Windows (`src-tauri/`) with a per-user NSIS installer.
+- PyInstaller backend sidecar that the Rust shell starts on a free loopback port and stops with the app.
+- Signed auto-updates through the Tauri updater and GitHub Releases.
+- `pnpm desktop:dev`, `pnpm desktop:build`, `pnpm sidecar`, and `pnpm screenshots:desktop` scripts.
+- Desktop screenshots in the README, captured from the packaged app.
+- Discover now pages through nhentai results with total counts, load-more and infinite scroll, sort options (recent, popular, this week, this month), a language filter, and favorite counts.
+- Discover marks results already in the library and links straight to them instead of offering a duplicate import.
+- nhentai imports now keep their tags, artists, language, and alternate title, so imported galleries are searchable locally by tag or artist.
+
+### Changed
+
+- Gallery, reader, and collection detail views now read their id from the query string (`/gallery?id=…`, `/reader?id=…`, `/collection?id=…`) so the same UI can ship as a static desktop bundle. Web routes changed accordingly.
+- `pnpm build:desktop` produces the static export used by Tauri; `pnpm build` keeps the server build used by Docker.
+- The API accepts the Tauri webview origins (`http://tauri.localhost`, `tauri://localhost`).
+- Desktop links to other sites open in the default browser; the shell no longer navigates away from the app.
+- Opening the desktop app a second time focuses the existing window instead of starting another backend.
+- An update found by the launch check now also appears in Settings → Desktop app.
+- Library search filters as you type, and nhentai requests are debounced, cached for 90 seconds, and reused through one Cloudflare-aware session.
+- Remote browse shows recently uploaded galleries even without a query.
+
+### Fixed
+
+- Remote gallery covers load inside the desktop app (the CSP now permits `https:` images).
+- Collection rename and delete use in-app dialogs; the shell's asynchronous `confirm()` override no longer skips the confirmation or ignores renames.
+- `/gallery`, `/collection`, and `/reader` without an id show a useful empty state instead of a blank page.
+- The library and collections navigation entries stay highlighted on detail pages.
+- A backend that fails to start is reported in the window instead of leaving every page broken.
+- nhentai rate limits (HTTP 429) and provider failures now show an actionable message with a retry instead of an empty result grid.
+- A single unreadable page no longer replaces the reader; that page shows a retry control while the rest of the gallery stays readable.
+- The README release steps list every file whose version must match.
+
 ## [1.1.0] - 2026-10-27
 
 ### Added

@@ -17,7 +17,7 @@ from app.db.session import SessionLocal, engine, init_db
 from app.models.models import Gallery, Job
 from app.services import library as libsvc
 
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 
 
 def _job_update(job_id: str, **fields):

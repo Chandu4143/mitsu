@@ -46,6 +46,13 @@ next-env.d.ts
 __pycache__/
 *.pyc
 
+# tauri / rust
+/src-tauri/target/
+/src-tauri/gen/schemas/
+/src-tauri/binaries/*
+!/src-tauri/binaries/.gitkeep
+/build/pyinstaller/
+
 # mitsu local data
 /data/
 /backend/data/

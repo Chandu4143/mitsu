@@ -24,9 +24,17 @@ const utilityItems: NavItem[] = [
 
 const allItems = [...primaryItems, ...utilityItems];
 
+// Detail views live under their own routes but belong to a navigation section.
+const sectionFor: Record<string, string> = {
+  "/gallery": "/library",
+  "/reader": "/library",
+  "/collection": "/collections",
+};
+
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(href + "/");
+  const section = sectionFor[pathname] ?? pathname;
+  return section === href || section.startsWith(href + "/");
 }
 
 function bytes(value: number) {

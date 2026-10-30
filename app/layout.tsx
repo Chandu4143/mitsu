@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { DesktopShell } from "@/components/DesktopShell";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
@@ -66,6 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-full bg-bg font-sans text-text">
         <ThemeProvider>
           {children}
+          <DesktopShell />
           <ServiceWorkerRegister />
         </ThemeProvider>
       </body>

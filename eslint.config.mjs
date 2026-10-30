@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Desktop shell: Rust build output and generated Tauri assets.
+    "src-tauri/target/**",
+    "src-tauri/gen/**",
   ]),
 ]);
 

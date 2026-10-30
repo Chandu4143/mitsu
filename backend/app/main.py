@@ -9,7 +9,7 @@ from app.db.session import SessionLocal, init_db
 from app.services.importer import ensure_default_root
 from app.services.jobs import reconcile_jobs
 
-app = FastAPI(title="Mitsu API", version="1.1.0")
+app = FastAPI(title="Mitsu API", version="1.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -19,6 +19,11 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3001",
         "http://localhost:3001",
+        # Origins used by the Tauri desktop shell. Windows serves the bundled
+        # frontend from http://tauri.localhost; other platforms use tauri://.
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+        "tauri://localhost",
     ],
     allow_credentials=True,
     allow_methods=["*"],

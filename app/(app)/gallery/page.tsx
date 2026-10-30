@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { api, type Bookmark, type Collection, type GalleryDetail, type MetadataCandidate } from "@/lib/api";
 import { Icon } from "@/components/Icon";
 import { Button, ConfirmDialog, EmptyState, Modal, Skeleton } from "@/components/ui";
 
 export default function GalleryDetailPage() {
-  const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const id = params?.id as string;
+  const id = searchParams.get("id") || "";
   const [gallery, setGallery] = useState<GalleryDetail | null>(null);
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,11 @@ export default function GalleryDetailPage() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (!id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoading(false);
+      return;
+    }
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -59,6 +63,21 @@ export default function GalleryDetailPage() {
         </div>
         <Skeleton className="h-40 w-full rounded-[24px]" />
       </div>
+    );
+  }
+
+  if (!id) {
+    return (
+      <EmptyState
+        icon="image"
+        title="No gallery selected"
+        description="Open a gallery from your library to see its details."
+        action={
+          <Link href="/library">
+            <Button variant="soft">Browse library</Button>
+          </Link>
+        }
+      />
     );
   }
 
@@ -175,7 +194,7 @@ export default function GalleryDetailPage() {
           <div className="flex min-w-0 flex-1 flex-col gap-5 md:col-start-2 md:row-start-2 md:flex-none">
             <div className="flex items-center gap-2">
               <Link
-                href={`/reader/${gallery.id}?page=${gallery.current_page + 1}`}
+                href={`/reader?id=${gallery.id}&page=${gallery.current_page + 1}`}
                 className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-primary px-5 text-[14px] font-bold text-white shadow-[0_10px_24px_-14px_rgba(179,95,134,0.95)] transition active:scale-[0.99] md:flex-none"
               >
                 <Icon name="play" size={15} />
@@ -305,7 +324,7 @@ export default function GalleryDetailPage() {
                 className="flex items-center gap-2 rounded-[20px] border border-border/80 bg-surface p-2 pl-3 transition hover:border-border-strong"
               >
                 <Link
-                  href={`/reader/${gallery.id}?page=${bookmark.page_index + 1}`}
+                  href={`/reader?id=${gallery.id}&page=${bookmark.page_index + 1}`}
                   className="flex min-w-0 flex-1 items-center gap-3 py-1"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary">
@@ -350,7 +369,7 @@ export default function GalleryDetailPage() {
                 className="group relative aspect-[3/4] overflow-hidden rounded-xl border border-border/70 bg-primary-soft"
               >
                 <Link
-                  href={`/reader/${gallery.id}?page=${page.page_index + 1}`}
+                  href={`/reader?id=${gallery.id}&page=${page.page_index + 1}`}
                   className="absolute inset-0"
                 >
                   {page.content_url ? (

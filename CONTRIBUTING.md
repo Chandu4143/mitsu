@@ -23,6 +23,17 @@ pnpm dev
 
 Open <http://127.0.0.1:3000>. The frontend proxies `/api/v1` to the backend.
 
+### Desktop app
+
+The Tauri shell lives in `src-tauri/`. It serves the static frontend export and starts the FastAPI backend itself, so you do not need to run the two commands above.
+
+```bash
+pnpm desktop:dev      # Next dev server + Rust shell + Python backend
+pnpm desktop:build    # PyInstaller sidecar + release build + NSIS installer
+```
+
+`pnpm desktop:dev` needs Rust and the Python backend dependencies. `pnpm desktop:build` also needs PyInstaller (`python -m pip install pyinstaller`) and a Tauri updater signing key for updater artifacts; see the README for the exact variables.
+
 ## Checks
 
 Run these before opening a pull request:
@@ -30,9 +41,18 @@ Run these before opening a pull request:
 ```bash
 pnpm lint
 pnpm typecheck
-pnpm build
+pnpm build          # server build used by Docker and run.py
+pnpm build:desktop  # static export embedded in the desktop app
 cd backend && python -m pytest
 ```
+
+For desktop changes, also run:
+
+```bash
+cargo check --manifest-path src-tauri/Cargo.toml
+```
+
+Run the app and check the external-link, update, and missing-id behaviour before opening a PR that touches the shell.
 
 ## Pull requests
 

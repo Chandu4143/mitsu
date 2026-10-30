@@ -1,8 +1,9 @@
 name: Release
 
-# Push a tag like v1.1.0 to publish:
+# Push a tag like v1.2.0 to publish:
 #   - a multi-arch container image on GHCR
 #   - mitsu-<version>.zip plus its sha256 on the GitHub release
+#   - a Windows installer plus the signed Tauri updater manifest
 on:
   push:
     tags: ["v*"]
@@ -59,3 +60,40 @@ jobs:
             dist/*.zip
             dist/*.sha256
           generate_release_notes: true
+
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install backend dependencies
+        run: python -m pip install -r backend/requirements.txt pyinstaller
+
+      - name: Build backend sidecar
+        run: python scripts/build-sidecar.py
+
+      - name: Build the installer and updater manifest
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseDraft: false
+          prerelease: false
+          args: --config src-tauri/tauri.bundle.conf.json
