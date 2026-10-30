@@ -18,9 +18,21 @@
   <img alt="License" src="https://img.shields.io/badge/license-MIT-B9698D?style=flat-square" />
 </p>
 
+<p align="center">
+  <a href="https://github.com/Chandu4143/mitsu/releases/latest/download/Mitsu-Setup.exe">
+    <img alt="Download Mitsu for Windows" src="https://img.shields.io/badge/Download_for_Windows-Mitsu_Setup-B9698D?style=for-the-badge&logo=windows&logoColor=white" />
+  </a>
+</p>
+
+<p align="center">
+  <sub>Download, run the installer, open <strong>Mitsu</strong>. No Python, Node.js, or pnpm needed.</sub>
+</p>
+
 ---
 
 Mitsu is a **local-first** manga library and reader. It runs entirely on your own machine — no accounts, no cloud, no telemetry. Import CBZ, ZIP, image folders, or remote galleries, read them in a focused reader, and keep your collection organised in collections and reading lists. The interface is mobile-first, with an iOS-style navigation shell, and works just as well on a desktop browser.
+
+> **Windows:** [Download **Mitsu-Setup.exe**](https://github.com/Chandu4143/mitsu/releases/latest/download/Mitsu-Setup.exe), run it, and launch Mitsu from the Start menu. The installer bundles everything it needs.
 
 ## Download
 
