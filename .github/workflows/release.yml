@@ -97,3 +97,18 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: --config src-tauri/tauri.bundle.conf.json
+
+      - name: Publish a stable download name
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $bundle = "src-tauri/target/release/bundle/nsis"
+          $installer = Get-ChildItem $bundle -Filter "*-setup.exe" | Select-Object -First 1
+          if (-not $installer) { throw "No NSIS installer was produced" }
+          $stable = Join-Path $bundle "Mitsu-Setup.exe"
+          Copy-Item $installer.FullName $stable -Force
+          $hash = (Get-FileHash $stable -Algorithm SHA256).Hash.ToLower()
+          "$hash  Mitsu-Setup.exe" | Set-Content "$stable.sha256" -Encoding ascii
+          gh release upload "${{ github.ref_name }}" $stable "$stable.sha256" --clobber
+
