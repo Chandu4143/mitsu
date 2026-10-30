@@ -27,7 +27,7 @@ Mitsu is a **local-first** manga library and reader. It runs entirely on your ow
 Every tagged release ships three ways to install:
 
 - **Source archive** — `mitsu-<version>.zip` from the [releases page](https://github.com/Chandu4143/mitsu/releases), with a `.sha256` checksum next to it.
-- **Windows desktop app** — `Mitsu_<version>_x64-setup.exe` from the same releases page. It installs per user, runs the bundled Python API as a sidecar, and updates itself from GitHub Releases.
+- **Windows desktop app** — `Mitsu_<version>_x64-setup.exe` from the same releases page. Download it, run it, and launch Mitsu from the Start menu. The installer is self-contained: the API is bundled as a sidecar and WebView2 is installed if needed, so users do not need Python, Node.js, or pnpm. It installs per user and updates itself from GitHub Releases.
 - **Container image** — `ghcr.io/chandu4143/mitsu:<version>` for `linux/amd64` and `linux/arm64` (also tagged `latest`).
 
 ### Run the archive
