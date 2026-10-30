@@ -351,6 +351,7 @@ thumbnails and cache are disposable.
 ## Troubleshooting
 
 - **The frontend loads but no galleries appear.** Make sure the backend is running on port `8000` and that you have imported at least one gallery.
+- **Windows warns about the desktop installer.** The installer is built from source and is not signed with a commercial Authenticode certificate, so SmartScreen may ask for confirmation. Choose **More info → Run anyway**, or verify the SHA-256 from the release page first.
 - **Imports fail.** Check that the path is absolute and that the files are readable. Library roots must point at existing directories.
 - **Port already in use.** Stop the other process, or change `MITSU_PORT` and the frontend origin accordingly.
 - **Screenshot capture fails.** Ensure the app is running, Chrome is installed, and `CHROME_PATH` points at it if it is not in the default location.
